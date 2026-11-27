@@ -371,7 +371,7 @@ function newGame(){
   G={t:0,day:1,phase:'day',phaseT:0,phaseLen:95,
     fire:{lvl:1,fuel:95,hp:100,fed:false,flick:1},
     fenceBuilt:false,fence:[],towers:TOWER_ANG.map(a=>({a,x:Math.cos(a)*FENCE_R,y:Math.sin(a)*FENCE_R,lvl:0,cd:0,aim:0})),
-    huts:[],villagers:[],piles:[],fenceLvl:1,altarUses:0,endless:false,finalNight:false,finalPending:false,chest:{w:{x:192,y:-20,n:0,kind:'w'},m:{x:192,y:30,n:0,kind:'m'}},trap:{lvl:0,t:0,x:0,y:FENCE_R+140,pile:{x:46,y:FENCE_R+148,n:0,kind:'m'}},
+    huts:[],villagers:[],piles:[],fenceLvl:1,altarUses:0,endless:false,finalNight:false,finalPending:false,chest:{w:{x:178,y:-14,n:0,kind:'w'},m:{x:178,y:34,n:0,kind:'m'}},trap:{lvl:0,t:0,x:0,y:FENCE_R+140,pile:{x:46,y:FENCE_R+148,n:0,kind:'m'}},
     up:{bag:0,axe:0,boots:0,hp:0},
     trees:[],boars:[],enemies:[],drops:[],parts:[],floats:[],arrows:[],flyers:[],eyes:[],
     spawnLeft:0,spawnT:0,shake:0,kills:0,plv:1,xp:0,pendLv:0,sk:{},shots:[],orbHit:new Map(),stats:{animals:0},banner:null,fullWarn:0,objective:'',boarT:0};
@@ -841,10 +841,10 @@ function objective(){
   const t0=PADS.find(p=>p.id==='tower0');
   if(!G.towers[0].lvl){if(m<t0.need.m)return{t:'Cace animais para pegar carne',o:nearest(G.boars,b=>b.kind!=='urso')};if(w<t0.need.w)return{t:'Junte lenha para a torre',o:nearest(G.trees,t=>t.alive)};return{t:'Construa a primeira torre',x:t0.x,y:t0.y}}
   // geral: algo que dá para pagar agora
-  let best=null,bd=1e12;for(const p of PADS){if(!padActive(p))continue;if(p.need.w<=w&&p.need.m<=m&&(p.need.w+p.need.m)>0){const d=d2(p.x,p.y,P.x,P.y);if(d<bd){bd=d;best=p}}}
+  let best=null,bd=1e12;for(const p of PADS){if(!padActive(p)||p.store||p.trash)continue;if(p.need.w<=w&&p.need.m<=m&&(p.need.w+p.need.m)>0){const d=d2(p.x,p.y,P.x,P.y);if(d<bd){bd=d;best=p}}}
   if(best)return{t:'Construa: '+padLabel(best),x:best.x,y:best.y};
   const tl=G.phaseLen-G.phaseT;
-  if(P.stack.length>=cap()){let p2=null;bd=1e12;for(const p of PADS){if(!padActive(p))continue;if((p.need.w>0&&w>0)||(p.need.m>0&&m>0)){const d=d2(p.x,p.y,P.x,P.y);if(d<bd){bd=d;p2=p}}}if(p2)return{t:'Mochila cheia: invista em '+padLabel(p2),x:p2.x,y:p2.y}}
+  if(P.stack.length>=cap()){let p2=null;bd=1e12;for(const p of PADS){if(!padActive(p)||p.store||p.trash)continue;if((p.need.w>0&&w>0)||(p.need.m>0&&m>0)){const d=d2(p.x,p.y,P.x,P.y);if(d<bd){bd=d;p2=p}}}if(p2)return{t:'Mochila cheia: invista em '+padLabel(p2),x:p2.x,y:p2.y};const sp=PADS.find(p=>p.store);return{t:'Mochila cheia: guarde no Baú ou jogue na Lixeira',x:sp.x,y:sp.y}}
   if(tl<12)return{t:'A noite está chegando! Volte para a cerca',x:0,y:60};
   return{t:'Colete lenha e carne para melhorar o acampamento'};
 }
@@ -1049,7 +1049,7 @@ function drawHut(c,h){
   if(p.n>0){txt(c,p.n+'',p.x,p.y-Math.min(6,Math.ceil(p.n/4))*6-14,13,'#fff')}
 }
 function drawPile(c,p){for(let i=0;i<Math.min(p.n,24);i++){const col=i%4,row=Math.floor(i/4);drawItem(c,p.kind,p.x-14+col*9+(row%2)*4,p.y-row*6,1)}if(p.n>0)txt(c,p.n+'',p.x,p.y-Math.min(6,Math.ceil(p.n/4))*6-14,13,'#fff')}
-function drawChest(c){const x=G.chest.w.x+34,y=G.chest.w.y+26;c.save();c.translate(x,y);c.fillStyle='rgba(0,0,0,.35)';c.beginPath();c.ellipse(0,2,20,7,0,0,TAU);c.fill();
+function drawChest(c){const x=G.chest.w.x,y=G.chest.w.y-40;c.save();c.translate(x,y);c.fillStyle='rgba(0,0,0,.35)';c.beginPath();c.ellipse(0,2,20,7,0,0,TAU);c.fill();
   c.fillStyle='#7a4a24';c.strokeStyle='#22140a';c.lineWidth=2;rr(c,-16,-20,32,20,3);c.fill();c.stroke();c.fillStyle='#8f5a2c';rr(c,-17,-28,34,10,5);c.fill();c.stroke();c.fillStyle='#d9b45a';c.fillRect(-3,-22,6,7);c.strokeStyle='#d9b45a';c.lineWidth=2;c.strokeRect(-16,-20,32,20);c.restore();
   for(const k of['w','m']){const p=G.chest[k];drawPile(c,{x:p.x,y:p.y,n:Math.min(p.n,24),kind:k});if(p.n>24)txt(c,p.n+'',p.x,p.y-48,13,'#fff')}}
 function drawTrap(c,T){c.save();c.translate(T.x,T.y-(T.snap?Math.sin(T.snap*40)*1.5:0));c.fillStyle='rgba(0,0,0,.35)';c.beginPath();c.ellipse(0,2,26,8,0,0,TAU);c.fill();
@@ -1129,7 +1129,7 @@ function render(){
   for(const T of G.towers)if(T.lvl)L.push([T.y,4,T]);
   for(const h of G.huts)L.push([h.y,5,h]);
   if(G.trap.lvl)L.push([G.trap.y,9,G.trap]);
-  L.push([G.chest.w.y-30,10,null]);
+  L.push([G.chest.w.y-38,10,null]);
   L.push([0,6,null]);
   if(P.dead<=0)L.push([P.y,7,P]);
   if(G.fenceBuilt)for(let i=0;i<NSEG;i++){const s=G.fence[i];if(s.hp<=0)continue;for(let j=0;j<3;j++){const a=(i+(j+.5)/3)/NSEG*TAU;L.push([Math.sin(a)*FENCE_R,8,{a,s}])}}
