@@ -63,11 +63,14 @@ p{margin:8px 0;line-height:1.4;color:#eadbc3;font-size:15px}
 .si button{flex:none;min-width:84px;border-radius:10px;border:2px solid #12461a;background:linear-gradient(180deg,#5fe06a,#2fa53b);color:#fff;font-weight:900;font-size:13px;padding:8px 6px;cursor:pointer}
 .si button:disabled{background:#5a4a3a;border-color:#2a1d12;color:#b9a68a;cursor:default}
 .si button:focus-visible,.mapsel button:focus-visible{outline:3px solid var(--ember);outline-offset:2px}
+.btn.inst{background:linear-gradient(180deg,#ffb04a,#e0701e);border-color:#7a330c;box-shadow:0 5px 0 #7a330c;text-shadow:0 2px 0 #7a330c;font-size:19px}
+.steps{text-align:left;margin:10px 0;padding-left:22px;line-height:1.5;color:#eadbc3}
 .btn:disabled{filter:grayscale(.8) brightness(.7);cursor:default}
 .toast{position:fixed;left:50%;top:calc(90px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:rgba(30,18,10,.9);border:2px solid var(--bark-light);padding:8px 14px;border-radius:12px;font-weight:900;z-index:9;pointer-events:none}
 @media (prefers-reduced-motion:reduce){.btn:active{transform:none}}
 </style>
 <style>[hidden]{display:none!important}</style>
+<script>window.__PWA=true;window.__bipEvt=null;addEventListener("beforeinstallprompt",e=>{e.preventDefault();window.__bipEvt=e});</script>
 </head>
 <body>
 
@@ -87,6 +90,7 @@ p{margin:8px 0;line-height:1.4;color:#eadbc3;font-size:15px}
     <button class="btn" id="bPlay">Jogar</button>
     <button class="btn alt" id="bShop">Loja Eterna</button>
     <button class="btn alt" id="bLook">Visual do Bernardo</button>
+    <button class="btn inst" id="bInstall" hidden>Instalar o jogo</button>
     <div class="best" id="bestTxt"></div>
     <div class="brasas" id="brasasTxt"></div>
     <p class="hint">Toque e arraste, WASD / setas ou controle. O Bernardo corta, ataca e coleta sozinho.</p>
@@ -109,6 +113,14 @@ p{margin:8px 0;line-height:1.4;color:#eadbc3;font-size:15px}
     <p class="hint">Melhorias que valem para todas as partidas. Ganhe brasas sobrevivendo noites e derrotando monstros.</p>
     <div id="shopList"></div>
     <button class="btn" id="bShopOk">Voltar</button>
+  </div>
+</div>
+
+<div class="ov" id="installMenu" hidden>
+  <div class="card">
+    <h2>Instalar o jogo</h2>
+    <div id="installSteps"></div>
+    <button class="btn" id="bInstallOk">Entendi</button>
   </div>
 </div>
 
@@ -917,7 +929,7 @@ function frame(now){
 
 /* ---------- UI ---------- */
 const $=id=>document.getElementById(id);
-const OVS=['menu','lookMenu','shopMenu','pauseMenu','overMenu'];
+const OVS=['menu','lookMenu','shopMenu','pauseMenu','overMenu','installMenu'];
 function show(id){for(const m of OVS)$(m).hidden=m!==id;$('bPause').hidden=id!==null;
   if(id){const ov=$(id);setTimeout(()=>{const b=[...ov.querySelectorAll('button')].find(x=>!x.disabled&&x.offsetParent);if(b&&GP.active)b.focus()},30)}}
 const nt=n=>n+(n===1?' noite':' noites');
@@ -967,6 +979,24 @@ function buildOpts(){const o=$('opts');o.innerHTML='';for(const k in LOOK){const
   row.querySelector('#ln_'+k).onclick=()=>{look[k]=(look[k]+1)%LOOK[k].v.length;upd()};upd()}}
 $('bLook').onclick=()=>{buildOpts();show('lookMenu')};
 $('bLookOk').onclick=()=>{show('menu')};
+
+/* ---------- instalar (só na versão do site) ---------- */
+const INST={evt:window.__bipEvt||null};
+const isStandalone=()=>matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches||navigator.standalone===true;
+const isIOS=()=>/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+function refreshInstall(){$('bInstall').hidden=!(window.__PWA&&!isStandalone())}
+addEventListener('beforeinstallprompt',e=>{e.preventDefault();INST.evt=e;refreshInstall()});
+addEventListener('appinstalled',()=>{INST.evt=null;refreshInstall();toast('Jogo instalado! Abra pelo ícone Fogueira.')});
+$('bInstall').onclick=async()=>{
+  const ev=INST.evt||window.__bipEvt;
+  if(ev){window.__bipEvt=null;INST.evt=null;try{ev.prompt();const r=await ev.userChoice;if(r&&r.outcome==='accepted')toast('Instalando...')}catch(e){}refreshInstall();return}
+  let h;
+  if(isIOS())h='<ol class="steps"><li>Abra este link no <b>Safari</b>.</li><li>Toque em <b>Compartilhar</b> (o quadrado com a seta para cima).</li><li>Escolha <b>Adicionar à Tela de Início</b> e toque em <b>Adicionar</b>.</li></ol>';
+  else if(/android/i.test(navigator.userAgent))h='<ol class="steps"><li>Abra este link no <b>Chrome</b>.</li><li>Toque no menu <b>⋮</b> no canto de cima.</li><li>Escolha <b>Instalar app</b> e confirme.</li></ol><p class="hint">Se só aparecer "Adicionar à tela inicial", recarregue a página uma vez e tente de novo.</p>';
+  else h='<ol class="steps"><li>Use o <b>Chrome</b> ou o <b>Edge</b>.</li><li>Clique no ícone de instalar no fim da barra de endereço (um monitor com uma seta).</li><li>Ou abra o menu <b>⋮</b> e escolha <b>Transmitir, salvar e compartilhar → Instalar página como app</b>.</li></ol><p class="hint">Se não aparecer, recarregue a página uma vez e tente de novo.</p>';
+  $('installSteps').innerHTML=h;show('installMenu')};
+$('bInstallOk').onclick=()=>show('menu');
+refreshInstall();
 
 /* ---------- controle (gamepad) ---------- */
 const GP={x:0,y:0,active:false,prev:{},sy:0,sx:0};
