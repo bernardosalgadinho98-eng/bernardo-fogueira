@@ -1013,51 +1013,57 @@ function autoChoose(){const g=G,pl=P,w=pl.stack.filter(k=>k==='w').length,m=pl.s
     for(const e of g.enemies){const rf=Math.hypot(e.x,e.y),rp=dst(e.x,e.y,pl.x,pl.y);if(lowHp&&rf>140)continue;if(rf>FENCE_R+420&&rp>260)continue;
       const sc=rp*rp*.5+rf*rf*(e.inside||rf<FENCE_R?.15:1)*(e.type==='final'||e.type==='rei'?.7:1)-(rf<120?4e5:0);if(sc<bs){bs=sc;best=e}}
     if(fuel<.35&&feed)return{x:0,y:0,why:'fire'};
-    if(feed&&fuel<.9&&!g.enemies.some(e=>Math.hypot(e.x,e.y)<FENCE_R+160))return{x:0,y:0,why:'fire'};
+    const nreq=g.dg?maxFuel()*.6:(g.phaseLen-g.phaseT)*1.15*(MAP.fuelMul||1)+10;if(feed&&g.fire.fuel<nreq&&!g.enemies.some(e=>Math.hypot(e.x,e.y)<FENCE_R+160))return{x:0,y:0,why:'fire'};
     if(best){// chefe forte: bate e recua quando o golpe dele está pronto
       if(best.dmg>=pl.hp*.8&&best.atk<=.35){const dx=pl.x-best.x,dy=pl.y-best.y,l=Math.hypot(dx,dy)||1;if(l<best.r+70)return{x:best.x+dx/l*(best.r+95),y:best.y+dy/l*(best.r+95),why:'kite'}}
       return{x:best.x,y:best.y,why:'fight'}}
-    if(fuel<.7&&feed)return{x:0,y:0,why:'fire'};
+    if(feed&&g.fire.fuel<nreq)return{x:0,y:0,why:'fire'};
     if(fuel<.4&&!w&&g.chest.w.n>0)return{x:g.chest.w.x,y:g.chest.w.y+22,why:'chestfuel'};
     const rep=PADS.find(p=>p.id==='repair');if(act(rep)&&w)return{x:rep.x,y:rep.y,pad:1};
     // ninguém perto: vai na direção do monstro mais próximo
     let nb=null,nd=1e12;for(const e of g.enemies){const q=d2(e.x,e.y,0,0);if(q<nd){nd=q;nb=e}}if(nb&&!lowHp){const r=Math.sqrt(nd),k=Math.min(1,(FENCE_R+120)/r);return{x:nb.x*k,y:nb.y*k,why:'intercept'}}
-    return{x:0,y:60,why:'wait'}}
+    return{x:0,y:104,why:'wait'}}
   if(g.dg&&g.dg.clear&&g.dg.stairs&&g.fire.fuel>maxFuel()*.6&&pl.stack.length===0&&(g.dg.wait=(g.dg.wait||0)+.4)>25){g.dg.wait=0;return{x:g.dg.stairs.x,y:g.dg.stairs.y,why:'stairs'}}
-  if(fuel<.45&&w>0)return{x:0,y:0,why:'fire'};
-  if(fuel<.3&&!w&&g.chest.w.n>0)return{x:g.chest.w.x,y:g.chest.w.y+22,why:'chestfuel'};
-  const left=g.phaseLen-g.phaseT;
-  if(fuel<.35&&!w&&!g.dg){if(pl.stack.length>=capN){const tr=PADS.find(p=>p.trash);return{x:tr.x,y:tr.y,pad:1,why:'trade'}}let bt=null,bq=1e12;for(const t of g.trees){if(!t.alive)continue;const q=d2(t.x,t.y,pl.x,pl.y);if(q<bq){bq=q;bt=t}}if(bt)return{x:bt.x+(bt.x>pl.x?-14:14),y:bt.y+6,why:'tree'}}
-  if(left<12&&!g.dg){if(feed&&fuel<.9)return{x:0,y:0,why:'fire'};const rep=PADS.find(p=>p.id==='repair');if(act(rep)&&w)return{x:rep.x,y:rep.y,pad:1}}
-  const fl=g.fire.lvl,tws=g.towers.filter(t=>t.lvl).length,twMin=Math.min(...g.towers.map(t=>t.lvl));
-  const prio=['fence','fire','tower0','up_axe','lumber','tower1','builder','up_bag','hunter','up_hp','collector','tower2','tower3','up_boots','helper','fenceup','warriors','trap','collector2','helper2','altarb','altarup'];
-  const fireOk=()=>fl<2||(fl<3&&tws>=2)||(fl<4&&tws>=4)||(fl>=4&&fl<6&&twMin>=fl-2);
-  const jobOk=p=>{const id=p.id;if(id.startsWith('tower'))return g.towers[+id[5]].lvl<Math.max(1,fl-2);if(id.startsWith('up_'))return g.up[id.slice(3)]<fl+(id==='up_bag'?1:0);if(id==='fenceup')return fl>=3&&(g.fenceLvl||1)<fl-1;if(id==='trap')return g.trap.lvl<fl-2;if(id==='helper'||id==='helper2')return fl>=4;return true};
+  // ===== dia: pensa como um jogador =====
+  const left=g.phaseLen-g.phaseT,trade=()=>{const tr=PADS.find(p=>p.trash);return{x:tr.x,y:tr.y,pad:1,why:'trade'}};
+  const nf=Math.min(maxFuel()*.95,62*(MAP.fuelMul||1));// lenha para aguentar a noite
+  const L=AUTO.lk&&AUTO.lk.d===g.day?AUTO.lk:(AUTO.lk={d:g.day});
+  const treeScore=t=>dst(t.x,t.y,pl.x,pl.y)+.35*Math.hypot(t.x,t.y);
+  const pickTree=()=>{if(L.tree&&L.tree.alive&&treeScore(L.tree)<500)return L.tree;let bt=null,bq=1e12;for(const t of g.trees){if(!t.alive)continue;const q=treeScore(t);if(q<bq){bq=q;bt=t}}L.tree=bt;return bt};
+  const goTree=why=>{const t=pickTree();return t?{x:t.x+(t.x>pl.x?-14:14),y:t.y+6,why:why||'tree'}:{x:0,y:60,why:'idle'}};
+  const pickBoar=()=>{if(L.boar&&g.boars.includes(L.boar)&&L.boar.hp>0&&dst(L.boar.x,L.boar.y,pl.x,pl.y)<520)return L.boar;let bb=null,bq=1e12;for(const a2 of g.boars){if(a2.kind==='urso'&&pl.hp<maxHp()*.8)continue;const q=dst(a2.x,a2.y,pl.x,pl.y)+.25*Math.hypot(a2.x,a2.y);if(q<bq){bq=q;bb=a2}}L.boar=bb;return bb};
+  // 1. emergência: fogueira quase apagando
+  if(fuel<.25&&!g.dg){if(w>0)return{x:0,y:0,why:'fire'};if(g.chest.w.n>0&&pl.stack.length<capN)return{x:g.chest.w.x,y:g.chest.w.y+22,why:'chestfuel'};if(pl.stack.length>=capN)return trade();return goTree('lenha')}
+  // 2. escolhe a melhoria de maior valor e se compromete com ela
+  const fl=g.fire.lvl;
+  const prio=['fence','up_bag','fire','tower0','up_axe','tower1','lumber','tower2','tower3','builder','hunter','up_hp','collector','up_boots','helper','fenceup','warriors','trap','collector2','helper2','altarb','altarup'];
   const sk=g.autoSkipJ&&g.autoSkipJ.d===g.day?g.autoSkipJ.ids:(g.autoSkipJ={d:g.day,ids:[]}).ids;
   const cand=prio.map(id=>PADS.find(p=>p.id===id)).filter(act).filter(p=>!sk.includes(p.id)&&jobGate(p));
   let job=g.autoJob&&cand.find(p=>p.id===g.autoJob);
   if(!job){job=cand[0]||null;g.autoJob=job&&job.id;g.autoJobT=0}
-  if(job&&(g.autoJobT=(g.autoJobT||0)+.4)>90){sk.push(job.id);g.autoJob=null;job=cand.find(p=>p.id!==job.id&&!sk.includes(p.id))||null;g.autoJob=job&&job.id;g.autoJobT=0}
-  const needs=p=>(p.need.w>0&&w>0)||(p.need.m>0&&m>0);
-  const ready=job&&w>=job.need.w&&m>=job.need.m;
-  const wUn=job?Math.max(0,w-job.need.w):0,mUn=job?Math.max(0,m-job.need.m):0,wantK=k=>!job||(k==='w'?job.need.w>w:job.need.m>m);
-    // o auto nunca guarda no baú: sobra vai para outra construção, para a fogueira ou é trocada
-  const other=k=>PADS.find(p=>padActive(p)&&!p.store&&!p.trash&&p!==job&&p.need&&p.need[k]>0&&!p.id.startsWith('merc'));
-  if(job&&wUn+mUn>=Math.max(6,capN*.4)){if(wUn>0&&feed&&fuel<.85)return{x:0,y:0,why:'fire'};if((wUn>=3&&job.need.m>m)||(mUn>0&&job.need.w>w)){const tr=PADS.find(p=>p.trash);return{x:tr.x,y:tr.y,pad:1,why:'trade'}}}
-  const full=pl.stack.length>=capN||(left<12&&pl.stack.length>0&&!g.dg)||ready;
-  if(full){if(job&&needs(job))return{x:job.x,y:job.y,pad:1,why:'build'};
-    if(!job)for(const p of cand){if(needs(p))return{x:p.x,y:p.y,pad:1,why:'build2'}}
-    {const o=other('w')||other('m');if(o&&needs(o))return{x:o.x,y:o.y,pad:1,why:'build2'}}if(feed&&fuel<.85)return{x:0,y:0,why:'fire'};const tr=PADS.find(p=>p.trash);return{x:tr.x,y:tr.y,pad:1,why:'trade'}}
-  if(g.loot&&dst(g.loot.x,g.loot.y,pl.x,pl.y)<g.loot.t*150)return{x:g.loot.x,y:g.loot.y,pad:1,why:'loot'};
-  {let bd=260*260,bdr=null;for(const d of g.drops){const q=d2(d.x,d.y,pl.x,pl.y)*(wantK(d.kind)?1:12);if(q<bd){bd=q;bdr=d}}if(bdr)return{x:bdr.x,y:bdr.y,why:'drop'}}
-  const tp=job;
-  // usar o baú (sem construtor, o próprio Bernardo busca o que falta)
-  if(tp&&!hasB&&pl.stack.length<capN){const nw=Math.max(0,tp.need.w-w),nm=Math.max(0,tp.need.m-m);if(nw>0&&g.chest.w.n>=Math.min(nw,3))return{x:g.chest.w.x,y:g.chest.w.y+22,why:'chestw'};if(nm>0&&g.chest.m.n>=Math.min(nm,3))return{x:g.chest.m.x,y:g.chest.m.y+22,why:'chestm'}}
-  // pilhas das cabanas cheias
-  {let pb=null,pd=1e12;for(const p of g.piles){if(p.n>=6&&wantK(p.kind)){const q=d2(p.x,p.y,pl.x,pl.y);if(q<pd){pd=q;pb=p}}}if(pb&&!g.villagers.some(v=>v.kind==='collector'))return{x:pb.x,y:pb.y+16,why:'pile'}}
-  let wantM=false;if(tp){const nw=Math.max(0,tp.need.w-w),nm=Math.max(0,tp.need.m-m);wantM=nm>0&&(nm>=nw*.6||nw===0)}
-  if(wantM){let best=null,bd=1e12;for(const a of g.boars){if(a.kind==='urso'&&pl.hp<maxHp()*.8)continue;const q=d2(a.x,a.y,pl.x,pl.y);if(q<bd){bd=q;best=a}}if(best)return{x:best.x,y:best.y,why:'hunt'}}
-  let best=null,bd=1e12;for(const t of g.trees){if(!t.alive)continue;const q=d2(t.x,t.y,pl.x,pl.y);if(q<bd){bd=q;best=t}}if(best)return{x:best.x+(best.x>pl.x?-14:14),y:best.y+6,why:'tree'};return{x:0,y:60,why:'idle'}}
+  if(job&&(g.autoJobT=(g.autoJobT||0)+.4)>110){sk.push(job.id);g.autoJob=null;job=cand.find(p=>!sk.includes(p.id))||null;g.autoJob=job&&job.id;g.autoJobT=0}
+  const nw=job?job.need.w:0,nm=job?job.need.m:0,rw=Math.max(0,nw-w),rm=Math.max(0,nm-m),wUn=Math.max(0,w-nw),mUn=Math.max(0,m-nm),free=capN-pl.stack.length;
+  const hasNeed=job&&((nw>0&&w>0)||(nm>0&&m>0));
+  // 3. fim do dia: entrega o que tem, garante lenha para a noite
+  if(left<14&&!g.dg){if(w>0&&g.fire.fuel<nf)return{x:0,y:0,why:'fire'};if(left<9&&hasNeed)return{x:job.x,y:job.y,pad:1,why:'build'};const rep=PADS.find(p=>p.id==='repair');if(left<9&&act(rep)&&w)return{x:rep.x,y:rep.y,pad:1,why:'repair'};
+    if(g.fire.fuel<nf)return goTree('lenha')}
+  // 4. já tem tudo (ou mochila cheia): vai entregar
+  if(job&&hasNeed&&((rw===0&&rm===0)||free<=0))return{x:job.x,y:job.y,pad:1,why:'build'};
+  // sobra de lenha: só alimenta a fogueira se ela estiver baixa
+  if(wUn>0&&g.fire.fuel<maxFuel()*.5&&(free<=0||wUn>=6))return{x:0,y:0,why:'fire'};
+  // mochila cheia com o que não serve: troca na Troca (carne vira lenha, lenha vira carne)
+  if(free<=0||(job&&wUn+mUn>=Math.max(8,capN*.5))){const o=cand.find(p=>p!==job&&p.need.w<=w&&p.need.m<=m&&p.need.w+p.need.m>0);if(o)return{x:o.x,y:o.y,pad:1,why:'build2'};return trade()}
+  if(!job){if(w>0&&g.fire.fuel<maxFuel()*.8)return{x:0,y:0,why:'fire'};return goTree()}
+  // 5. junta o que falta, do jeito mais rápido
+  const want=k=>k==='w'?rw>0:rm>0;
+  if(g.loot&&dst(g.loot.x,g.loot.y,pl.x,pl.y)<Math.min(230,g.loot.t*150))return{x:g.loot.x,y:g.loot.y,pad:1,why:'loot'};
+  {let bd=1e12,bdr=null;for(const d of g.drops){const dd=dst(d.x,d.y,pl.x,pl.y),lim=want(d.kind)?190:70;if(dd<lim&&dd<bd){bd=dd;bdr=d}}if(bdr)return{x:bdr.x,y:bdr.y,why:'drop'}}
+  if(!hasB){if(rw>0&&g.chest.w.n>0)return{x:g.chest.w.x,y:g.chest.w.y+22,why:'chestw'};if(rm>0&&g.chest.m.n>0)return{x:g.chest.m.x,y:g.chest.m.y+22,why:'chestm'}}
+  if(!g.villagers.some(v=>v.kind==='collector')){let pb=null,pd=1e12;for(const p of g.piles){if(p.n>=3&&want(p.kind)){const q=dst(p.x,p.y,pl.x,pl.y);if(q<pd){pd=q;pb=p}}}if(pb)return{x:pb.x,y:pb.y+16,why:'pile'}}
+  // carne ou lenha? a que falta mais (proporcional), se tiver bicho por perto
+  let goM=rm>0&&(rw===0||rm/Math.max(1,nm)>=rw/Math.max(1,nw)*.8||L.k==='m');if(rw===0)goM=rm>0;if(rm===0)goM=false;
+  if(goM){const bo=pickBoar();if(bo){L.k='m';return{x:bo.x,y:bo.y,why:'hunt'}}}
+  L.k=rw>0?'w':L.k;return goTree()}
 function autoBusy(T){if(!T||P.dead>0)return false;if(G.enemies.some(e=>dst(e.x,e.y,P.x,P.y)<80))return false;
   if(T.pad){const p=PADS.find(q=>padActive(q)&&Math.abs(q.x-T.x)<6&&Math.abs(q.y-T.y)<6);if(!p)return false;const on=Math.abs(P.x-p.x)<32&&Math.abs(P.y-p.y)<32;if(!on)return false;
     if(p.store)return P.stack.length>0;if(p.trash)return false;return (p.need.w>0&&P.stack.includes('w'))||(p.need.m>0&&P.stack.includes('m'))}
