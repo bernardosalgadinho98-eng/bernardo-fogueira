@@ -1036,7 +1036,7 @@ function autoChoose(){const g=G,pl=P,w=pl.stack.filter(k=>k==='w').length,m=pl.s
   if(fuel<.25&&!g.dg){if(w>0)return{x:0,y:0,why:'fire'};if(g.chest.w.n>0&&pl.stack.length<capN)return{x:g.chest.w.x,y:g.chest.w.y+22,why:'chestfuel'};if(pl.stack.length>=capN)return trade();return goTree('lenha')}
   // 2. escolhe a melhoria de maior valor e se compromete com ela
   const fl=g.fire.lvl;
-  const prio=['fence','up_bag','fire','tower0','up_axe','tower1','lumber','tower2','tower3','builder','hunter','up_hp','collector','up_boots','helper','fenceup','warriors','trap','collector2','helper2','altarb','altarup'];
+  const prio=['fence','up_bag','fire','tower0','up_axe','tower1','hunter','lumber','tower2','tower3','builder','up_hp','collector','up_boots','helper','fenceup','warriors','trap','collector2','helper2','altarb','altarup'];
   const sk=g.autoSkipJ&&g.autoSkipJ.d===g.day?g.autoSkipJ.ids:(g.autoSkipJ={d:g.day,ids:[]}).ids;
   const cand=prio.map(id=>PADS.find(p=>p.id===id)).filter(act).filter(p=>!sk.includes(p.id)&&jobGate(p));
   let job=g.autoJob&&cand.find(p=>p.id===g.autoJob);
@@ -1443,7 +1443,7 @@ function updateVillagers(dt){
 }
 function addBuilder(){G.villagers.push({kind:'builder',items:[],hut:{x:300,y:-112},x:300,y:-112,state:'seek',t:0,face:1,walk:0,swingA:0,hidden:false})}
 const builderPad=p=>(p.id.startsWith('tower')&&G.towers[+p.id.slice(5)]&&G.towers[+p.id.slice(5)].lvl>0)||p.id==='fenceup'||(p.id==='trap'&&G.trap.lvl>0);
-const BPRIO=['repair','fence','tower0','tower1','lumber','tower2','tower3','fire','hunter','collector','up_axe','up_bag','fenceup','warriors','helper','collector2','up_hp','up_boots','trap','helper2','altarb','altarup'];
+const BPRIO=['repair','fence','tower0','tower1','hunter','lumber','tower2','tower3','fire','collector','up_axe','up_bag','fenceup','warriors','helper','collector2','up_hp','up_boots','trap','helper2','altarb','altarup'];
 function builderAI(v,dt){v.items=v.items||[];const night=G.phase==='night';
   // 1) consertos (dia e noite)
   const okR=o=>o&&(o.seg?o.seg.max&&o.seg.hp<o.seg.max:o.T?o.T.lvl&&o.T.hp<towerMax(o.T):false);
@@ -1456,7 +1456,7 @@ function builderAI(v,dt){v.items=v.items||[];const night=G.phase==='night';
   // 2) construir e melhorar usando o baú
   const live=p=>p&&padActive(p)&&!p.store&&!p.trash&&p.need&&(p.need.w>0||p.need.m>0);
   if(v.job&&!live(v.job)){v.job=null}
-  if(!v.job&&(v.t<=0)){v.t=1;for(const id of BPRIO){const p=PADS.find(q=>q.id===id);if(!live(p)||!jobGate(p))continue;const gw=Math.min(p.need.w,G.chest.w.n),gm=Math.min(p.need.m,G.chest.m.n),tot=p.need.w+p.need.m;if(gw+gm>=Math.min(tot,6)&&(gw+gm)>0){v.job=p;break}}}
+  if(!v.job&&(v.t<=0)){v.t=1;for(const id of BPRIO){const p=PADS.find(q=>q.id===id);if(!live(p)||!jobGate(p))continue;const gw=Math.min(p.need.w,G.chest.w.n),gm=Math.min(p.need.m,G.chest.m.n),tot=p.need.w+p.need.m;if(gw+gm>=Math.min(tot,2)&&(gw+gm)>0){v.job=p;break}}}
   const p=v.job;
   if(!p){if(v.items.length){const ch=G.chest.w;moveTo(v,ch.x,ch.y+30,120,dt);if(dst(v.x,v.y,ch.x,ch.y+30)<16){for(const k of v.items)G.chest[k].n++;v.items=[]}return}v.msg=G.chest.w.n+G.chest.m.n<4?'Guarde recursos no baú para eu construir':'';moveTo(v,150,-96,70,dt);return}
   const hw=v.items.filter(k=>k==='w').length,hm=v.items.length-hw,needW=Math.max(0,p.need.w-hw),needM=Math.max(0,p.need.m-hm),CAPB=14,room=CAPB-v.items.length;
