@@ -350,7 +350,7 @@ const AU={master:null,mus:null,sfx:null,noise:null,track:null,next:0,step:0};
 function ensureAudio(){
   try{if(!AC){AC=new(window.AudioContext||window.webkitAudioContext)();
     AU.master=AC.createGain();AU.master.gain.value=.9;AU.master.connect(AC.destination);
-    AU.mus=AC.createGain();AU.mus.gain.value=musicOn?.5:0;AU.mus.connect(AU.master);
+    AU.mf=AC.createBiquadFilter();AU.mf.type='lowpass';AU.mf.frequency.value=20000;AU.mf.connect(AU.master);AU.mus=AC.createGain();AU.mus.gain.value=musicOn?.5:0;AU.mus.connect(AU.mf);AU.amb=AC.createGain();AU.amb.gain.value=.6;AU.amb.connect(AU.master);
     AU.sfx=AC.createGain();AU.sfx.gain.value=muted?0:1;AU.sfx.connect(AU.master);
     const len=AC.sampleRate;const b=AC.createBuffer(1,len,AC.sampleRate);const d=b.getChannelData(0);for(let i=0;i<len;i++)d[i]=Math.random()*2-1;AU.noise=b;
     setInterval(schedMusic,30)}
@@ -382,24 +382,84 @@ const TRACKS={
     mel:[3,_,7,10,12,_,10,7, 5,_,7,_,10,_,_,_, 7,_,5,3,0,_,3,5, 7,_,_,5,3,_,_,_, 12,_,15,_,12,10,_,7, 10,_,12,_,10,7,_,5, 8,_,7,_,5,_,3,_, 5,_,7,_,2,_,_,_]},
   night:{bpm:120,arp:0,drums:2,roots:[-24,-24,-28,-29,-19,-19,-28,-29],third:[3,3,4,4,3,3,4,4],
     mel:[0,_,3,_,7,_,8,7, 3,_,_,_,0,_,_,_, 8,_,7,_,5,_,3,_, 11,_,_,_,7,_,_,_, 12,_,10,_,8,_,7,_, 5,_,7,_,8,_,_,_, 8,_,10,_,12,_,8,_, 11,_,8,_,7,_,_,_]},
+  day_pantano:{own:1,bpm:86,arp:1,drums:4,lead:'pluck',pad:1,roots:[-31,-31,-29,-26,-31,-31,-33,-29],third:[3,3,4,4,3,3,3,4],
+    mel:[-7,_,-4,_,0,_,-2,-4, -5,_,_,_,-7,_,_,_, -4,_,-2,_,0,_,2,0, -2,_,_,-4,-5,_,_,_, 5,_,3,_,0,_,-2,_, 0,_,2,_,3,_,_,_, 2,_,0,_,-2,_,-4,_, -5,_,_,_,-7,_,_,_]},
+  night_pantano:{own:1,bpm:98,arp:0,drums:2,lead:'saw',pad:1,roots:[-31,-32,-31,-27,-31,-32,-34,-27],third:[3,3,3,4,3,3,3,4],
+    mel:[-7,_,_,-6,-7,_,_,_, -4,_,-6,_,-7,_,_,_, -2,_,-4,_,-6,_,-7,_, -3,_,_,_,-10,_,_,_, 5,_,4,_,1,_,-2,_, 1,_,-2,_,-4,_,_,_, -2,_,-4,_,-6,_,-4,_, -7,_,_,_,_,_,_,_]},
+  day_neve:{own:1,bpm:96,arp:1,drums:1,lead:'bell',roots:[-29,-20,-27,-22,-29,-20,-24,-22],third:[4,3,3,4,4,3,4,4],
+    mel:[7,_,11,_,14,_,11,_, 16,_,14,_,11,_,_,_, 9,_,12,_,16,_,12,_, 14,_,_,_,11,_,_,_, 7,_,9,_,11,_,14,_, 16,_,19,_,16,_,14,_, 12,_,11,_,9,_,12,_, 11,_,_,_,7,_,_,_]},
+  night_neve:{own:1,bpm:110,arp:1,drums:2,lead:'bell',pad:1,roots:[-29,-29,-25,-27,-29,-29,-24,-22],third:[3,3,4,3,3,3,4,4],
+    mel:[7,_,10,_,14,_,12,10, 9,_,_,_,7,_,_,_, 15,_,14,_,12,_,10,_, 11,_,_,_,6,_,_,_, 19,_,17,_,15,_,14,_, 12,_,14,_,15,_,_,_, 14,_,12,_,10,_,9,_, 7,_,_,_,_,_,_,_]},
+  day_deserto:{own:1,bpm:108,arp:0,drums:5,lead:'pluck',roots:[-29,-28,-29,-24,-29,-28,-26,-29],third:[4,4,4,3,4,4,3,4],
+    mel:[-5,-4,-1,_,0,_,-1,-4, -5,_,_,_,_,_,_,_, 2,_,3,2,0,_,-1,_, 0,-1,-4,_,-5,_,_,_, 7,_,8,7,5,_,3,_, 2,_,3,_,5,_,3,2, 0,_,-1,_,-4,_,-1,0, -1,_,_,_,-5,_,_,_]},
+  night_deserto:{own:1,bpm:124,arp:0,drums:6,lead:'saw',pad:1,roots:[-29,-28,-29,-24,-29,-28,-26,-29],third:[4,4,4,3,4,4,3,4],
+    mel:[7,_,8,_,7,5,3,_, 2,_,3,_,2,0,-1,_, 0,_,2,_,3,_,5,_, 3,2,0,_,-1,_,_,_, -5,-4,-1,0,2,_,0,-1, -4,_,-1,_,0,_,_,_, 2,3,2,0,-1,_,-4,_, -5,_,_,_,_,_,_,_]},
+  day_cinzas:{own:1,bpm:90,arp:0,drums:2,lead:'saw',pad:1,roots:[-28,-28,-32,-30,-28,-28,-25,-30],third:[3,3,4,4,3,3,4,4],
+    mel:[3,_,_,_,6,_,5,3, 1,_,_,_,-2,_,_,_, 3,_,6,_,8,_,10,_, 11,_,10,_,8,_,_,_, 15,_,_,_,13,_,11,10, 8,_,_,_,6,_,_,_, 5,_,6,_,8,_,6,5, 3,_,_,_,_,_,_,_]},
+  night_cinzas:{own:1,bpm:136,arp:0,drums:3,lead:'sq',roots:[-28,-27,-28,-32,-28,-27,-25,-32],third:[3,3,3,4,3,3,4,4],
+    mel:[3,_,3,6,5,_,3,_, 1,_,3,_,-2,_,_,_, 3,_,3,6,8,_,6,_, 11,_,10,_,8,_,_,_, 15,_,15,13,11,_,10,_, 8,_,10,_,6,_,_,_, 5,_,6,_,8,_,10,_, 11,_,_,_,15,_,_,_]},
+  final:{bpm:150,arp:0,drums:3,choir:1,roots:[-24,-24,-28,-26,-24,-24,-31,-29],third:[3,3,4,4,3,3,4,4],
+    mel:[12,_,15,_,19,_,17,15, 14,_,_,_,12,_,_,_, 20,_,19,_,17,_,15,_, 14,_,_,_,11,_,_,_, 12,_,12,15,19,_,22,_, 20,_,19,_,17,_,_,_, 15,_,17,_,19,_,20,_, 23,_,_,_,24,_,_,_]},
+  win:{own:1,bpm:112,arp:1,drums:1,lead:'bell',roots:[-24,-29,-27,-22,-24,-29,-22,-24],third:[4,4,3,4,4,4,4,4],
+    mel:[0,_,4,_,7,_,12,_, 11,_,12,_,14,_,_,_, 9,_,7,_,9,_,12,_, 11,_,_,_,7,_,_,_, 12,_,14,_,16,_,12,_, 14,_,12,_,11,_,9,_, 7,_,9,_,11,_,14,_, 12,_,_,_,_,_,_,_]},
+  lose:{own:1,bpm:66,arp:1,drums:0,pad:1,roots:[-24,-27,-29,-24,-26,-27,-29,-29],third:[3,4,3,3,3,4,3,4],
+    mel:[12,_,_,_,10,_,8,_, 7,_,_,_,_,_,_,_, 5,_,_,_,7,_,8,_, 4,_,_,_,_,_,_,_, 8,_,_,_,7,_,5,_, 3,_,_,_,5,_,_,_, 4,_,_,_,2,_,_,_, 0,_,_,_,_,_,_,_]},
   boss:{bpm:140,arp:0,drums:3,roots:[-24,-23,-24,-29,-24,-23,-21,-29],third:[3,3,3,4,3,3,4,4],
     mel:[0,_,1,_,0,_,-2,_, 0,_,1,_,3,_,1,_, 0,_,1,_,0,_,-2,_, -1,_,_,_,-5,_,_,_, 12,_,13,_,12,_,10,_, 12,_,13,_,15,_,13,_, 15,_,13,_,12,_,10,_, 11,_,_,_,7,_,_,_]}
 };
-function setTrack(name){if(!AC)return;if(AU.track===name)return;AU.track=name;AU.step=0;AU.next=AC.currentTime+.08}
+function setTrack(name){AU.base=name}
+function wantTrack(){const b=AU.base;if(!b)return null;if(G&&MAP&&state!=='menu'&&(b==='day'||b==='night')){const nm=(b==='day'&&G.eclipse)?'night':b,k=nm+'_'+MAP.id;return TRACKS[k]?k:nm}return b}
+function musMods(){const m={bpm:1,key:0,choir:false};if(G&&state!=='menu'&&AU.base!=='win'&&AU.base!=='lose'&&AU.base!=='menu'){if(G.blood&&G.phase==='night'){m.bpm=1.08;m.key=-1;m.choir=true}if(G.eclipse&&G.phase==='day'){m.bpm=.85;m.key=-2}}return m}
+function sting(k){if(!AC||!musicOn&&muted)return;const t=AC.currentTime+.02,D=AU.sfx;try{
+  if(k==='loot')[0,4,7,12,16,19].forEach((n,i)=>{tone(n+3,t+i*.07,.25,'triangle',.06,0,D);tone(n+15,t+i*.07,.12,'square',.012,3000,D)});
+  if(k==='merchant')[7,_,5,4,5,7,12].forEach((n,i)=>{if(n!=null){tone(n,t+i*.11,.3,'triangle',.06,0,D);tone(n+12,t+i*.11,.08,'square',.01,2500,D)}});
+  if(k==='blood'){tone(-24,t,1.4,'sawtooth',.05,600,D);tone(-23,t+1.2,1.6,'sawtooth',.05,600,D);tone(-36,t,2.6,'sine',.08,0,D);nz(2.2,.09,350,'lowpass',null,D,t)}
+  if(k==='eclipse')[24,19,15,12,7].forEach((n,i)=>{tone(n,t+i*.16,1,'sine',.04,0,D);tone(n+7,t+i*.16,.6,'sine',.012,0,D)});
+  if(k==='boss'){nz(2.4,.14,260,'lowpass',null,D,t);tone(-24,t,1.2,'sawtooth',.06,700,D);tone(-17,t+.5,1.4,'sawtooth',.06,700,D);tone(-12,t+1,1.6,'sawtooth',.05,900,D)}
+  if(k==='dawn')[0,4,7,11,12].forEach((n,i)=>tone(n+3,t+i*.12,.8,'sine',.04,0,D));
+}catch(e){}}
+function ambTone(f0,f1,d,type,v,cut,t){try{const o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.setValueAtTime(f0,t);if(f1!==f0)o.frequency.exponentialRampToValueAtTime(f1,t+d);g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(v,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+d);let n=o;if(cut){const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.value=cut;o.connect(f);n=f}n.connect(g);g.connect(AU.amb);o.start(t);o.stop(t+d+.05)}catch(e){}}
+function ambLoop(key,on,freq,type,vol){const cur=AU[key];if(on&&!cur){try{const s=AC.createBufferSource();s.buffer=AU.noise;s.loop=true;const f=AC.createBiquadFilter();f.type=type;f.frequency.value=freq;f.Q.value=.6;const g=AC.createGain();g.gain.value=.0001;s.connect(f);f.connect(g);g.connect(AU.amb);s.start();g.gain.setTargetAtTime(vol,AC.currentTime,1.2);AU[key]={s,g}}catch(e){}}
+  else if(!on&&cur){cur.g.gain.setTargetAtTime(.0001,AC.currentTime,.8);const s=cur.s;setTimeout(()=>{try{s.stop()}catch(e){}},4000);AU[key]=null}else if(on&&cur&&key==='wind'){cur.g.gain.setTargetAtTime(vol*(.5+.5*Math.sin(AC.currentTime*.4)+.2*Math.sin(AC.currentTime*1.3)),AC.currentTime,.5)}}
+function ambTick(){if(!AC)return;const play=G&&MAP&&(state==='play'||state==='levelup')&&!muted,id=MAP&&MAP.id,night=G&&(G.phase==='night'||G.eclipse),t=AC.currentTime+.03,pr=p=>Math.random()<p*.03;
+  ambLoop('rainL',play&&G.rain,1400,'bandpass',.07);ambLoop('wind',play&&(id==='neve'||id==='deserto'),id==='neve'?700:420,'lowpass',id==='neve'?.05:.035);ambLoop('rumble',play&&id==='cinzas',140,'lowpass',.06);
+  if(AU.mf)AU.mf.frequency.setTargetAtTime(play&&G.rain?1500:20000,AC.currentTime,.6);
+  if(!play)return;
+  if(night&&(id==='floresta'||id==='pantano')&&pr(1.1)){for(let i=0;i<3;i++)ambTone(4300,4300,.025,'sine',.012,0,t+i*.06)}
+  if(id==='pantano'&&pr(.45)){ambTone(120,80,.13,'sawtooth',.03,500,t);ambTone(110,75,.13,'sawtooth',.025,500,t+.18)}
+  if(!night&&id==='floresta'&&pr(.35)){ambTone(2300,3200,.1,'sine',.014,0,t);ambTone(2600,3600,.08,'sine',.012,0,t+.14)}
+  if(!night&&id==='neve'&&pr(.15))ambTone(5200,5200,.4,'sine',.006,0,t);
+  if(id==='cinzas'&&pr(.6)){ambTone(80,40,.3,'sine',.05,0,t);nz(.15,.03,300,'lowpass',null,AU.amb,t)}
+  if(id==='deserto'&&!night&&pr(.08)){ambTone(1800,1300,.5,'sine',.01,0,t)}
+  if(dst(P.x,P.y,0,0)<FENCE_R&&pr(2.5+G.fire.lvl*.4))nz(.018,.018+.004*G.fire.lvl,3200,'highpass',null,AU.amb,t)}
 function musEcho(){if(AU.echo)return AU.echo;try{const e=AC.createGain(),dl=AC.createDelay(1),fb=AC.createGain(),wet=AC.createGain();dl.delayTime.value=.34;fb.gain.value=.3;wet.gain.value=.4;
   e.connect(AU.mus);e.connect(dl);dl.connect(fb);fb.connect(dl);dl.connect(wet);wet.connect(AU.mus);AU.echo=e}catch(x){AU.echo=AU.mus}return AU.echo}
 function schedMusic(){
-  if(!AC||!AU.track||!musicOn)return;const T=TRACKS[AU.track];const st=60/T.bpm/2,K=(state!=='menu'&&MAP&&MAP.key)||0,L=T.mel.length,E=musEcho(),D=T.drums;
+  try{ambTick()}catch(e){}
+  if(!AC||!musicOn)return;const want=wantTrack();if(!want)return;const vol=.5;
+  if(!AU.track){AU.track=want;AU.step=0;AU.next=AC.currentTime+.08}
+  else if(want!==AU.track&&AU.pend!==want){AU.pend=want;AU.fadeT=AC.currentTime+.55;const g=AU.mus.gain;g.cancelScheduledValues(AC.currentTime);g.setValueAtTime(g.value,AC.currentTime);g.linearRampToValueAtTime(.0001,AU.fadeT)}
+  if(AU.pend&&AC.currentTime>=AU.fadeT){AU.track=AU.pend;AU.pend=null;AU.step=0;AU.next=AC.currentTime+.05;const g=AU.mus.gain;g.cancelScheduledValues(AC.currentTime);g.setValueAtTime(.0001,AC.currentTime);g.linearRampToValueAtTime(vol,AC.currentTime+1.1)}
+  const T=TRACKS[AU.track];if(!T)return;const MD=musMods();const st=60/(T.bpm*MD.bpm)/2,K=(T.own?0:((state!=='menu'&&MAP&&MAP.key)||0))+MD.key,L=T.mel.length,E=musEcho(),D=T.drums;
   if(AU.next<AC.currentTime-.2)AU.next=AC.currentTime+.05;
   while(AU.next<AC.currentTime+.2){const i=AU.step,t=AU.next,bar=Math.floor(i/8)%T.roots.length,b=i%8,root=T.roots[bar]+K,th=T.third[bar];
     const m=T.mel[i%L];
-    if(m!=null){const n=m+K;if(D>=2)tone(n+(D===3?-12:0),t,st*1.8,'square',.02,1500,E);else{tone(n,t,st*1.9,'triangle',.05,0,E);tone(n+12,t,st*1.3,'sine',.011,0,E)}}
+    if(m!=null){const n=m+K,LD=T.lead;
+      if(LD==='pluck'){tone(n,t,st*1.3,'triangle',.06,0,E);tone(n+12,t,st*.45,'square',.009,2600,E)}
+      else if(LD==='bell'){tone(n,t,st*3.2,'sine',.045,0,E);tone(n+19,t,st*1.4,'sine',.012,0,E);tone(n+12,t,st*.6,'triangle',.01,0,E)}
+      else if(LD==='saw'){tone(n,t,st*1.8,'sawtooth',.024,1150,E);tone(n-12,t,st*1.4,'sine',.02,0,E)}
+      else if(LD==='sq'||D>=2)tone(n+(D===3?-12:0),t,st*1.8,'square',.02,1500,E);else{tone(n,t,st*1.9,'triangle',.05,0,E);tone(n+12,t,st*1.3,'sine',.011,0,E)}}
+    if(b===0&&(T.pad||T.choir||MD.choir)){const d=st*8.2;tone(root+12,t,d,'sawtooth',.009,700);tone(root+12+th,t,d,'sawtooth',.007,700);tone(root+19,t,d,'sawtooth',.006,700);
+      if(T.choir||MD.choir){tone(root+24,t,d,'sawtooth',.008,1300);tone(root+24.12,t,d,'sawtooth',.008,1300);tone(root+31,t,d,'triangle',.008,0,E)}}
     if(T.arp){const ch=[0,th,7,12],ix=[0,1,2,3,2,1,2,1][b];tone(root+24+ch[ix],t,st*.9,'sine',m!=null?.008:.015,0,E)}
-    if(D>=2){tone(root-12+(b%2?12:0),t,st*.9,'sawtooth',b===0?.07:.045,D===3?700:420)}
+    if(D===4){if(b===0||b===3||b===5)tone(root-12,t,st*1.4,'triangle',.08)}else if(D===5||D===6){if(b===0||b===3||b===6)tone(root-12+(b===6?7:0),t,st*1.2,'triangle',.08);if(D===6&&b%2)tone(root,t,st*.5,'sawtooth',.03,500)}
+    else if(D>=2){tone(root-12+(b%2?12:0),t,st*.9,'sawtooth',b===0?.07:.045,D===3?700:420)}
     else if(b===0||b===3||b===4||b===6){tone(root+(b===4?7:b===6?12:0),t,st*1.6,'triangle',.07)}
     if(b===0){const d=st*8;tone(root+12,t,d,'sine',.02);tone(root+12+th,t,d,'sine',.016);tone(root+19,t,d,'sine',.014)}
     if(D===2&&b===0&&bar%4===3)tone(root+36,t,st*6,'sine',.012,0,E);
     if(D===3&&b===0)tone(root+24+th,t,st*7,'sawtooth',.008,900,E);
+    if(D===4){if(b===0||b===5)kick(t,.11);nz(.03,b%2?.012:.02,6000,'highpass',null,AU.mus,t);if(bar%2&&b===7)tom(t,.08,95)}
+    if(D===5||D===6){if(b===0||b===6)tom(t,.15,D===6?120:105);if(b===3||b===4||b===7)nz(.05,.05,3200,'bandpass',null,AU.mus,t);if(D===6){if(b===0||b===4)kick(t,.16);if(b%2===0)nz(.02,.02,8000,'highpass',null,AU.mus,t)}if(bar===7&&b>=5)tom(t,.1,190-b*10)}
     if(D===1){if(b===0||b===4)kick(t,.12);if(b%2)nz(.04,.035,7000,'highpass',null,AU.mus,t);if(b===6)nz(.08,.03,2500,'bandpass',null,AU.mus,t);if(bar===7&&b>=5)tom(t,.09,220-b*12)}
     if(D>=2){if(b===0||b===3||b===6)kick(t,.2);if(b===4)nz(.16,.07,1800,'bandpass',null,AU.mus,t);if(bar%2&&(b===5||b===7))tom(t,.12,170);
       if(D===3||b%2)nz(.03,.025,8000,'highpass',null,AU.mus,t);if(bar===7&&b>=4)tom(t,.13,200-b*10)}
@@ -709,8 +769,8 @@ function shake(v){G.shake=Math.max(G.shake,v)}
 function startNight(){
   G.hurtNight=false;
   G.phase='night';G.phaseT=0;G.phaseLen=Math.min(72,42+4*G.day)*(rl('tronco')?1.2:1);G.mq=mqNew(true);
-  const n=G.day;let total=Math.round((5+Math.floor(n*3.2))*1.1*(MAP.emul||1)*(G.endless?1.2:1));G.finalNight=!G.endless&&n>=MAP.final;if(G.finalNight)total=Math.round(total*1.3);G.merchant=null;G.blood=!G.finalNight&&!G.daily&&n>=3&&n%5!==0&&Math.random()<.14;if(G.blood)total*=2;G.rain=Math.random()<.2;G.spawnLeft=total;G.spawnT=1.5;G.spawnEvery=(G.phaseLen*.62)/total;G.bossPending=(n%5===0);
-  if(G.finalNight){banner('Noite final','O Senhor da Noite chegou. Derrote-o e aguente até o amanhecer!');G.finalPending=true;setTrack('boss')}else{banner('Noite '+n,n%5===0?'O Rei das Sombras está vindo...':'Defenda a fogueira!');setTrack(n%5===0?'boss':'night')}if(!G.finalNight&&n<=2&&n%5&&MAP.tip)setTimeout(()=>{if(G&&G.phase==='night')floatTxt(P.x,P.y-90,MAP.tip,'#ffd27a',true)},2200);SFX.night();if(G.blood)setTimeout(()=>{if(G&&G.blood)banner('Lua de sangue!','O dobro de monstros. Bônus em dobro ao amanhecer')},1800);else if(G.rain)setTimeout(()=>{if(G&&G.rain)banner('Chuva','A fogueira gasta lenha mais rápido')},1800);
+  const n=G.day;let total=Math.round((5+Math.floor(n*3.2))*1.1*(MAP.emul||1)*(G.endless?1.2:1));G.finalNight=!G.endless&&n>=MAP.final;if(G.finalNight)total=Math.round(total*1.3);G.merchant=null;G.blood=!G.finalNight&&!G.daily&&n>=3&&n%5!==0&&Math.random()<.14;if(G.blood){total*=2;setTimeout(()=>sting('blood'),700)}G.rain=Math.random()<.2;G.spawnLeft=total;G.spawnT=1.5;G.spawnEvery=(G.phaseLen*.62)/total;G.bossPending=(n%5===0);
+  if(G.finalNight){banner('Noite final','O Senhor da Noite chegou. Derrote-o e aguente até o amanhecer!');G.finalPending=true;setTrack('final')}else{banner('Noite '+n,n%5===0?'O Rei das Sombras está vindo...':'Defenda a fogueira!');setTrack(n%5===0?'boss':'night')}if(!G.finalNight&&n<=2&&n%5&&MAP.tip)setTimeout(()=>{if(G&&G.phase==='night')floatTxt(P.x,P.y-90,MAP.tip,'#ffd27a',true)},2200);SFX.night();if(G.blood)setTimeout(()=>{if(G&&G.blood)banner('Lua de sangue!','O dobro de monstros. Bônus em dobro ao amanhecer')},1800);else if(G.rain)setTimeout(()=>{if(G&&G.rain)banner('Chuva','A fogueira gasta lenha mais rápido')},1800);
   for(const v of G.villagers){v.state='home';if(v.target){v.target.claimed=null;v.target=null}}
 }
 function startDay(){
@@ -718,7 +778,7 @@ function startDay(){
   for(const e of G.enemies){burst(e.x,e.y-14,'#3a2b4a',10,90,6,-40)}G.enemies=[];
   {const wb=G.blood;G.blood=false;if(wb){achieve('lua');addDrop(30,60,'w',20);addDrop(-30,60,'m',12)}G.rain=Math.random()<.18;G.eclipse=!G.rain&&G.day>=4&&Math.random()<.1;G.eclT=0;
    G.merchant=G.day>=3&&Math.random()<.32?{items:(()=>{const a=[0,1,2,3,4,5];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a.slice(0,3)})(),bought:[0,0,0]}:null;for(const p of PADS)if(p.id.startsWith('merc'))p.need=p.cost();
-   const msg=wb?['Lua de sangue vencida!','Bônus em dobro ao lado da fogueira']:G.merchant?['Mercador viajante chegou!','Ele está a oeste, fora da cerca, até o anoitecer']:G.eclipse?['Eclipse!','O dia escureceu e monstros vão aparecer']:G.rain?['Chuva','A fogueira gasta lenha mais rápido']:null;if(msg)setTimeout(()=>{if(G&&state==='play')banner(msg[0],msg[1])},3200)}
+   const msg=wb?['Lua de sangue vencida!','Bônus em dobro ao lado da fogueira']:G.merchant?['Mercador viajante chegou!','Ele está a oeste, fora da cerca, até o anoitecer']:G.eclipse?['Eclipse!','O dia escureceu e monstros vão aparecer']:G.rain?['Chuva','A fogueira gasta lenha mais rápido']:null;if(msg)setTimeout(()=>{if(G&&state==='play'){banner(msg[0],msg[1]);sting(wb?'dawn':G.merchant?'merchant':G.eclipse?'eclipse':'dawn')}},3200)}
   for(const T of G.towers)if(T.lvl&&T.hp!=null)T.hp=Math.min(towerMax(T),T.hp+towerMax(T)*.4);G.fire.hp=100;for(const s of G.fence){if(s.max)s.hp=Math.min(s.max,s.hp+s.max*.5)}
   const bonus=3+survived*2;addDrop(30,30,'w',Math.min(30,bonus));addDrop(-30,30,'m',Math.min(20,Math.ceil(bonus*.6)));
     banner('Você sobreviveu à noite '+survived+'!','Bônus ao lado da fogueira');SFX.day();setTrack('day');
@@ -765,13 +825,13 @@ function update(dt){
       const n=G.day;const roll=Math.random();
       let type='sombra';if(n>=3&&roll<.3)type='corredor';if(n>=4&&roll>.86)type='bruto';
       spawnEnemy(type);if(Math.random()<.3)SFX.growl();if(n>=6&&Math.random()<.35)spawnEnemy('sombra');
-      if(G.finalPending&&G.phaseT>G.phaseLen*.3){G.finalPending=false;spawnEnemy('final');shake(14);SFX.roar();floatTxt(P.x,P.y-90,'O Senhor da Noite apareceu!','#ff8a6a',true)}
-      if(G.bossPending&&G.spawnLeft<=Math.floor(G.spawnLeft*.5+1)){G.bossPending=false;spawnEnemy('rei');shake(10);SFX.roar()}}
+      if(G.finalPending&&G.phaseT>G.phaseLen*.3){G.finalPending=false;spawnEnemy('final');shake(14);SFX.roar();sting('boss');floatTxt(P.x,P.y-90,'O Senhor da Noite apareceu!','#ff8a6a',true)}
+      if(G.bossPending&&G.spawnLeft<=Math.floor(G.spawnLeft*.5+1)){G.bossPending=false;spawnEnemy('rei');shake(10);SFX.roar();sting('boss')}}
   }
 
   if(G.eclipse&&G.phase==='day'){G.eclT+=dt;if(G.eclT>3.2&&G.phaseT<G.phaseLen-8){G.eclT=0;spawnEnemy(Math.random()<.25?'corredor':'sombra')}}
   if(G.trap.lvl){G.trap.t+=dt;const per=[0,16,10,6][G.trap.lvl];if(G.trap.t>=per){G.trap.t=0;if(G.trap.pile.n<25){G.trap.pile.n++;G.trap.snap=.4}}G.trap.snap=Math.max(0,(G.trap.snap||0)-dt)}
-  if(G.phase==='night'&&G.finalPending&&G.phaseT>G.phaseLen*.3){G.finalPending=false;spawnEnemy('final');shake(14);SFX.roar();floatTxt(P.x,P.y-90,'O Senhor da Noite apareceu!','#ff8a6a',true)}
+  if(G.phase==='night'&&G.finalPending&&G.phaseT>G.phaseLen*.3){G.finalPending=false;spawnEnemy('final');shake(14);SFX.roar();sting('boss');floatTxt(P.x,P.y-90,'O Senhor da Noite apareceu!','#ff8a6a',true)}
   updatePlayer(dt);updatePet(dt);updateWeapons(dt);updateEnemies(dt);updateBoars(dt);updateTrees(dt);updateTowers(dt);updateVillagers(dt);updateDrops(dt);updateFx(dt);
   if(G.pendLv>0&&P.dead<=0){openLevelUp();return}
   // mais javalis
@@ -887,7 +947,7 @@ function drawGhost(c){if(!GHOST||state!=='play')return;const i=Math.floor(G.t),a
   c.save();c.globalAlpha=.32;drawPerson(c,x,y,b&&b[0]<a[0]?-1:1,b&&(b[0]!==a[0]||b[1]!==a[1])?G.t*10:0,0,{smile:1,skin:'#bfe3ff',hair:'#6aa8ff',style:5,beard:3,shirt:'#3a6fd6',glasses:0},'axe',1,0);c.globalAlpha=.6;txt(c,'Recorde',x,y-62,11,'#9fd0ff');c.restore()}
 function lootUpdate(dt){
   if(G.phase!=='day'){G.loot=null;return}
-  if(!G.loot&&(G.lootN||0)<2&&G.phaseT>(G.lootN?34:12)&&G.phaseT<G.phaseLen-18){G.lootN=(G.lootN||0)+1;const a=rnd(0,TAU),r=rnd(430,720);G.loot={x:Math.cos(a)*r,y:Math.sin(a)*r,t:30,rare:Math.random()<.22};floatTxt(P.x,P.y-90,G.loot.rare?'Baú raro na floresta!':'Baú perdido na floresta!','#ffd27a',true);SFX.coin()}
+  if(!G.loot&&(G.lootN||0)<2&&G.phaseT>(G.lootN?34:12)&&G.phaseT<G.phaseLen-18){G.lootN=(G.lootN||0)+1;const a=rnd(0,TAU),r=rnd(430,720);G.loot={x:Math.cos(a)*r,y:Math.sin(a)*r,t:30,rare:Math.random()<.22};floatTxt(P.x,P.y-90,G.loot.rare?'Baú raro na floresta!':'Baú perdido na floresta!','#ffd27a',true);sting('loot')}
   const L=G.loot;if(!L)return;L.t-=dt;if(L.t<=0){G.loot=null;return}
   if(Math.hypot(P.x-L.x,P.y-L.y)<40){const n=L.rare?2:1;addDrop(L.x,L.y,'w',5*n+G.day);addDrop(L.x,L.y,'m',2*n+Math.floor(G.day/2));gainXP(8*n+G.day*2);burst(L.x,L.y-14,'#ffd24a',24,220,4,-160);if(L.rare&&Math.random()<.5)grantRelic();floatTxt(L.x,L.y-60,L.rare?'Baú raro!':'Baú aberto!','#ffd27a',true);SFX.levelup();qAdd('chest');G.loot=null}}
 function drawLoot(c){const L=G.loot;if(!L||state!=='play')return;const b=Math.sin(G.t*6)*3;
@@ -1685,7 +1745,7 @@ $('bThr').onclick=()=>{const id=MAPS[mapIdx].id,mx=META.thr[id]||0;META.thrSel[i
 $('bRank').onclick=()=>{META.rankOn=!META.rankOn;saveMeta();refreshMap();toast(META.rankOn?'Modo Ranking: sem loja, talentos e prestígio. Todos iguais.':'Modo normal')};
 $('mapPrev').onclick=()=>changeMap(-1);$('mapNext').onclick=()=>changeMap(1);
 function startGame(){MAP=MAPS[mapIdx];if(!mapUnlocked(MAP))return;if(nmOn&&mapWon(MAP.id))MAP=nmMap(mapIdx);{const t=Math.min(META.thrSel[MAP.id]||0,META.thr[MAPS[mapIdx].id]||0);MAP=thrMap(MAP,t)}ensureAudio();clearRun();newGame();G.ranked=!!META.rankOn;for(const p of PADS)p.need=p.cost();META.used=META.used||{};META.used[G.ch]=1;if(Object.keys(META.used).length>=3)achieve('equipe');saveMeta();state='play';show(null);setTrack('day');saveRun()}
-$('bContinue').onclick=()=>{ensureAudio();if(!loadRun()){clearRun();refreshBest();return}state='play';show(null);setTrack(G.phase==='night'?(G.day%5===0||G.finalNight?'boss':'night'):'day');last=performance.now()};
+$('bContinue').onclick=()=>{ensureAudio();if(!loadRun()){clearRun();refreshBest();return}state='play';show(null);setTrack(G.phase==='night'?(G.finalNight?'final':G.day%5===0?'boss':'night'):'day');last=performance.now()};
 function runReward(){const n=G.day-1;return Math.round((n*16+G.kills*1.2+(G.fire.lvl-1)*10+(G.plv-1)*4)*MAP.mul*(1+.1*pl('luck'))*(curEvent().id==='festival'?1.25:1)*(1+.1*META.pres))}
 function endRun(){checkAch();const R=runReward(),r=Math.max(0,R-(G.paidR||0));{const gn=G.day-1;if(!G.daily&&!MAP.nm&&gn>(META.ghostN[MAP.id]||0)&&G.trail&&G.trail.length>20){META.ghostN[MAP.id]=gn;const tr=[];for(let i=0;i<G.trail.length;i++)tr.push(G.trail[i]||G.trail[i-1]||[0,70]);store.set('bf_ghost_'+MAP.id,tr)}}META.tot.nights=(META.tot.nights||0)+Math.max(0,(G.day-1)-(G.paidN||0));G.paidN=G.day-1;META.tot.kills+=G.kills-(G.paidK||0);META.tot.animals+=G.stats.animals-(G.paidA||0);G.paidR=R;G.paidK=G.kills;G.paidA=G.stats.animals;if(G.pet&&r>0){const k=G.pet.kind;META.pets.xp[k]=(META.pets.xp[k]||0)+Math.round(r*.4);if(petLv(k)>=5)achieve('pet5')}META.brasas+=r;passAdd(r*.6+(G.paidOnce?0:40));G.paidOnce=1;const n=G.day-1;if(n>(META.best[MAP.id]||0))META.best[MAP.id]=n;
   if(G.daily){const L=META.drank[G.daily.id]=META.drank[G.daily.id]||[];let e=L.find(x=>x.r===G.rid);if(!e){e={r:G.rid};L.push(e)}e.s=chalScore();e.n=n;e.ch=chName();L.sort((a,b)=>b.s-a.s);if(L.length>10)L.length=10;const old=dayKey(new Date(Date.now()-7*864e5));for(const k in META.drank)if(k<old)delete META.drank[k]}
@@ -1693,7 +1753,7 @@ function endRun(){checkAch();const R=runReward(),r=Math.max(0,R-(G.paidR||0));{c
 function victory(){state='win';const first=!mapWon(MAP.id);META.win[MAP.id]=1;if(MAP.nm){META.nm[MAP.id]=1;achieve('pesadelo')}const bonus=Math.round((first?250:120)*MAP.mul);META.brasas+=bonus;G.winBonus=bonus;G.wdbl=0;$('bWinDouble').disabled=false;qAdd('win');passAdd(150);achieve('vit_'+MAP.id);checkAch();saveMeta();
   $('winTitle').textContent='Vitória em '+MAP.n+'!';{const id=MAPS[mapIdx].id,t=MAP.thr||0;if(!G.daily&&(META.thr[id]||0)<Math.min(10,t+1)){META.thr[id]=Math.min(10,t+1);saveMeta();setTimeout(()=>toast('Ameaça '+(t+1)+' liberada nesta fase!'),1200)}}$('winTxt').textContent='Você sobreviveu às '+MAP.final+' noites e derrotou o Senhor da Noite. '+chName()+' nível '+G.plv+', '+G.kills+' monstros. Tempo: '+fmtT(G.rt)+'.'+rankRec(true);{META.bestT=META.bestT||{};const bt=META.bestT[MAP.id];if(!G.daily&&!G.endless&&(!bt||G.rt<bt)){META.bestT[MAP.id]=Math.round(G.rt);saveMeta();$('winTxt').textContent+=' Novo recorde de tempo!'}else if(bt)$('winTxt').textContent+=' Melhor tempo: '+fmtT(bt)+'.'}
   $('winBrasas').textContent='+'+bonus+' brasas de vitória'+(first?' (primeira vez)':'');const nx=MAPS[mapIdx+1];$('winNext').textContent=nx?'Fase liberada: '+nx.n:'Você zerou todas as fases. Lenda!';
-  setTrack('menu');SFX.levelup();setTimeout(()=>SFX.day(),400);clearRun();show('winMenu')}
+  setTrack('win');SFX.levelup();setTimeout(()=>SFX.day(),400);clearRun();show('winMenu')}
 $('bEndless').onclick=()=>{G.endless=true;G.finalNight=false;G.finalPending=false;regrowTrees();state='play';show(null);setTrack('day');banner('Modo infinito','As noites ficam cada vez mais difíceis. Até onde você aguenta?');saveRun();last=performance.now()};
 /* ---------- retenção ---------- */
 const QP=[{k:'kill',n:'Derrote {g} monstros',g:[50,400]},{k:'animal',n:'Cace {g} animais',g:[8,50]},{k:'cervo',n:'Cace {g} cervos',g:[3,15]},{k:'tree',n:'Derrube {g} árvores',g:[20,120]},{k:'night',n:'Sobreviva a {g} noites',g:[4,25]},{k:'nodmg',n:'Passe {g} noite(s) sem levar dano',g:[1,5]},{k:'build',n:'Faça {g} construções',g:[8,50]},{k:'boss',n:'Derrote {g} chefe(s)',g:[1,4]},{k:'level',n:'Chegue ao nível {g} numa partida',g:[8,14],max:1},{k:'win',n:'Vença {g} fase',g:[1,1],w:1}];
@@ -1867,7 +1927,7 @@ function gameOver(){clearRun();state='over';const n=G.day-1;const r=endRun();G.l
   $('overBest').textContent='Recorde nesta fase: '+nt(META.best[MAP.id]||0);
   const nxt=MAPS[mapIdx+1];if(nxt&&mapUnlocked(nxt)&&n>=nxt.need&&(META.best[MAP.id]||0)===n)$('overBest').textContent+=' · Nova fase liberada: '+nxt.n+'!';
   if(G.daily)$('overBest').textContent='Desafio diário: '+chalScore()+' pontos';
-  show('overMenu');setTrack('menu');SFX.death()}
+  show('overMenu');setTrack('lose');SFX.death()}
 $('bPlay').onclick=startGame;$('bAgain').onclick=()=>{if(G&&G.daily)startChal();else startGame()};
 $('bMenu').onclick=()=>{state='menu';newGame();show('menu');refreshBest()};
 $('bQuit').onclick=()=>{clearRun();endRun();state='menu';newGame();show('menu');refreshBest();setTrack('menu')};
@@ -1898,7 +1958,7 @@ function setSpeedBtn(){const b=$('bSpeed');b.textContent=(gameSpeed===1.5?'1,5':
 $('bAuto').onclick=()=>{AUTO.on=!AUTO.on;AUTO.tgt=null;toast(AUTO.on?'Modo auto ligado. Mexa o controle para assumir.':'Modo auto desligado')};
 $('bSpeed').onclick=()=>{gameSpeed=gameSpeed===1?1.5:gameSpeed===1.5?2:1;store.set('bf_speed',gameSpeed);setSpeedBtn();toast('Velocidade '+String(gameSpeed).replace('.',',')+'x')};setSpeedBtn();
 $('bMute').onclick=()=>{ensureAudio();muted=!muted;store.set('bf_mute',muted);if(AU.sfx)AU.sfx.gain.value=muted?0:1;setMuteBtn()};
-$('bMusic').onclick=()=>{ensureAudio();musicOn=!musicOn;store.set('bf_music',musicOn);if(AU.mus)AU.mus.gain.value=musicOn?.5:0;if(musicOn&&!AU.track)setTrack(state==='play'?'day':'menu');setMuteBtn()};setMuteBtn();
+$('bMusic').onclick=()=>{ensureAudio();musicOn=!musicOn;store.set('bf_music',musicOn);if(AU.mus)AU.mus.gain.value=musicOn?.5:0;if(musicOn&&!AU.base)setTrack(state==='play'?'day':'menu');setMuteBtn()};setMuteBtn();
 // loja eterna
 function buildShop(){$('shopBrasas').textContent=META.brasas+' brasas';const L=$('shopList');L.innerHTML='';
   for(const p of PERM){const lv=plRaw(p.k),maxed=lv>=p.max,c=permCost(p);const d=document.createElement('div');d.className='si';
@@ -1910,7 +1970,7 @@ $('bAch').onclick=()=>{ensureAudio();buildAch();show('achMenu')};
 $('bAchOk').onclick=()=>{show('menu');refreshBest()};
 $('bShop').onclick=()=>{ensureAudio();buildShop();show('shopMenu')};
 $('bShopOk').onclick=()=>{show('menu');refreshBest();newGame()};
-document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('button')){ensureAudio();if(state!=='play'&&!AU.track)setTrack('menu');SFX.click()}},true);
+document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('button')){ensureAudio();if(state!=='play'&&!AU.base)setTrack('menu');SFX.click()}},true);
 // editor de visual
 const pctx=$('prev').getContext('2d');
 const PVC=document.createElement('canvas');PVC.width=PVC.height=440;const pvx=PVC.getContext('2d');
