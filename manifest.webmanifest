@@ -1,7 +1,7 @@
 {
-  "name": "Bernardo e a Última Fogueira",
-  "short_name": "Fogueira",
-  "description": "Sobreviva à floresta e defenda a fogueira dos monstros.",
+  "name": "Guardião da Chama",
+  "short_name": "Guardião",
+  "description": "Defenda a última chama: colete, construa sua fortaleza e enfrente os monstros da noite.",
   "lang": "pt-BR",
   "start_url": "./",
   "scope": "./",

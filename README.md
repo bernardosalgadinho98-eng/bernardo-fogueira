@@ -1,4 +1,4 @@
-# Bernardo e a Última Fogueira
+# Guardião da Chama
 
 Jogo de sobrevivência para navegador: corte lenha, cace javalis, construa o acampamento e defenda a fogueira dos monstros a cada noite.
 
