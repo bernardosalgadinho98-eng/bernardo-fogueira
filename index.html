@@ -1027,7 +1027,7 @@ function autoChoose(){const g=G,pl=P,w=pl.stack.filter(k=>k==='w').length,m=pl.s
   if(fuel<.45&&w>0)return{x:0,y:0,why:'fire'};
   if(fuel<.3&&!w&&g.chest.w.n>0)return{x:g.chest.w.x,y:g.chest.w.y+22,why:'chestfuel'};
   const left=g.phaseLen-g.phaseT;
-  if(fuel<.35&&!w&&!g.dg){if(pl.stack.length>=capN){const st=PADS.find(p=>p.store);return{x:st.x,y:st.y,pad:1,why:'store'}}let bt=null,bq=1e12;for(const t of g.trees){if(!t.alive)continue;const q=d2(t.x,t.y,pl.x,pl.y);if(q<bq){bq=q;bt=t}}if(bt)return{x:bt.x+(bt.x>pl.x?-14:14),y:bt.y+6,why:'tree'}}
+  if(fuel<.35&&!w&&!g.dg){if(pl.stack.length>=capN){const tr=PADS.find(p=>p.trash);return{x:tr.x,y:tr.y,pad:1,why:'trade'}}let bt=null,bq=1e12;for(const t of g.trees){if(!t.alive)continue;const q=d2(t.x,t.y,pl.x,pl.y);if(q<bq){bq=q;bt=t}}if(bt)return{x:bt.x+(bt.x>pl.x?-14:14),y:bt.y+6,why:'tree'}}
   if(left<12&&!g.dg){if(feed&&fuel<.9)return{x:0,y:0,why:'fire'};const rep=PADS.find(p=>p.id==='repair');if(act(rep)&&w)return{x:rep.x,y:rep.y,pad:1}}
   const fl=g.fire.lvl,tws=g.towers.filter(t=>t.lvl).length,twMin=Math.min(...g.towers.map(t=>t.lvl));
   const prio=['fence','fire','tower0','up_axe','lumber','tower1','builder','up_bag','hunter','up_hp','collector','tower2','tower3','up_boots','helper','fenceup','warriors','trap','collector2','helper2','altarb','altarup'];
@@ -1041,11 +1041,13 @@ function autoChoose(){const g=G,pl=P,w=pl.stack.filter(k=>k==='w').length,m=pl.s
   const needs=p=>(p.need.w>0&&w>0)||(p.need.m>0&&m>0);
   const ready=job&&w>=job.need.w&&m>=job.need.m;
   const wUn=job?Math.max(0,w-job.need.w):0,mUn=job?Math.max(0,m-job.need.m):0,wantK=k=>!job||(k==='w'?job.need.w>w:job.need.m>m);
-  if(job&&wUn+mUn>=Math.max(6,capN*.4)){if(wUn>0&&feed&&fuel<.85)return{x:0,y:0,why:'fire'};if(wUn>=3&&job.need.m>m&&g.chest.w.n>=12){const tr=PADS.find(p=>p.trash);return{x:tr.x,y:tr.y,pad:1,why:'trade'}}const st=PADS.find(p=>p.store);return{x:st.x,y:st.y,pad:1,why:'store'}}
+    // o auto nunca guarda no baú: sobra vai para outra construção, para a fogueira ou é trocada
+  const other=k=>PADS.find(p=>padActive(p)&&!p.store&&!p.trash&&p!==job&&p.need&&p.need[k]>0&&!p.id.startsWith('merc'));
+  if(job&&wUn+mUn>=Math.max(6,capN*.4)){if(wUn>0&&feed&&fuel<.85)return{x:0,y:0,why:'fire'};if((wUn>=3&&job.need.m>m)||(mUn>0&&job.need.w>w)){const tr=PADS.find(p=>p.trash);return{x:tr.x,y:tr.y,pad:1,why:'trade'}}}
   const full=pl.stack.length>=capN||(left<12&&pl.stack.length>0&&!g.dg)||ready;
   if(full){if(job&&needs(job))return{x:job.x,y:job.y,pad:1,why:'build'};
     if(!job)for(const p of cand){if(needs(p))return{x:p.x,y:p.y,pad:1,why:'build2'}}
-    if(feed&&fuel<.85)return{x:0,y:0,why:'fire'};const st=PADS.find(p=>p.store);return{x:st.x,y:st.y,pad:1,why:'store'}}
+    {const o=other('w')||other('m');if(o&&needs(o))return{x:o.x,y:o.y,pad:1,why:'build2'}}if(feed&&fuel<.85)return{x:0,y:0,why:'fire'};const tr=PADS.find(p=>p.trash);return{x:tr.x,y:tr.y,pad:1,why:'trade'}}
   if(g.loot&&dst(g.loot.x,g.loot.y,pl.x,pl.y)<g.loot.t*150)return{x:g.loot.x,y:g.loot.y,pad:1,why:'loot'};
   {let bd=260*260,bdr=null;for(const d of g.drops){const q=d2(d.x,d.y,pl.x,pl.y)*(wantK(d.kind)?1:12);if(q<bd){bd=q;bdr=d}}if(bdr)return{x:bdr.x,y:bdr.y,why:'drop'}}
   const tp=job;
