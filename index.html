@@ -2074,7 +2074,7 @@ $('bRank').onclick=()=>{META.rankOn=!META.rankOn;saveMeta();refreshMap();toast(M
 $('bCamp').onclick=()=>{SFX.click();ensureAudio();openCamp()};$('bCampBack').onclick=()=>{show('menu');refreshBest()};$('bCampNext').onclick=()=>{const L=MAP.camp;endRun();campStart(L+1)};$('bCampMap').onclick=()=>{endRun();state='menu';newGame();setTrack('menu');openCamp()};$('bOverCamp').onclick=()=>{state='menu';newGame();setTrack('menu');openCamp()};
 $('bJoust').onclick=()=>{SFX.click();joustOpen()};$('bJBack').onclick=()=>{state='menu';show('menu');refreshBest();setTrack('menu')};$('bJGo').onclick=()=>{SFX.click();wallStart()};
 $('bJQuit').onclick=()=>{SFX.click();if(WD&&WD.ph!=='over'){WD.hp=0;wallEnd()}else wallList()};$('bJRain').onclick=e=>{e.preventDefault();wallRain()};
-{const cv=$('jcv');cv.addEventListener('pointerdown',e=>{e.preventDefault();if(!WD||WD.ph!=='fight')return;try{cv.setPointerCapture(e.pointerId)}catch(_){}wallAim(e);WD.hold=true;if(WD.cd<=0){WD.cd=.42/(1+.15*wlv('rate'));wallShoot()}});
+{const cv=$('jcv');cv.addEventListener('pointerdown',e=>{e.preventDefault();if(!WD||WD.ph!=='fight')return;try{cv.setPointerCapture(e.pointerId)}catch(_){}wallAim(e);WD.hold=true;if(WD.cd<=0){WD.cd=.36/(1+.15*wlv('rate'));wallShoot()}});
  cv.addEventListener('pointermove',e=>{if(WD&&(WD.hold||e.pointerType==='mouse'))wallAim(e)});const up=()=>{if(WD)WD.hold=false};cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);cv.addEventListener('pointerleave',e=>{if(e.pointerType==='mouse')up()})}
 addEventListener('keydown',e=>{if(state==='wall'&&WD&&e.code==='Space'){e.preventDefault();wallRain()}});
 $('bDg').onclick=()=>{SFX.click();panel('Masmorra Infinita',fillDg)};
@@ -2225,12 +2225,12 @@ function fillDg(el){const R=META.dg.rank;let h='<p>Desça andar por andar. Cada 
 
 /* ---------- Defesa da Muralha ---------- */
 META.wall=META.wall||{best:0,rank:[],runs:0};META.wall.rank=META.wall.rank||[];
-const WUP=[{k:'dmg',i:'🏹',n:'Flechas afiadas',d:'+25% de dano',c:l=>18+14*l,max:10},{k:'rate',i:'⚡',n:'Mãos rápidas',d:'+15% de cadência',c:l=>18+14*l,max:8},
-  {k:'multi',i:'➶',n:'Flecha extra',d:'+1 flecha por disparo',c:l=>55+55*l,max:3},{k:'pierce',i:'🎯',n:'Perfuração',d:'atravessa +1 monstro',c:l=>40+35*l,max:3},
-  {k:'fire',i:'🔥',n:'Flechas de fogo',d:'explodem e ferem quem está perto',c:l=>60+45*l,max:3},{k:'wall',i:'🧱',n:'Reforçar muralha',d:'+25 de vida máxima e conserta tudo',c:l=>28+18*l,max:8},
-  {k:'ally',i:'🛡',n:'Besteiro aliado',d:'um ajudante atira sozinho',c:l=>80+70*l,max:2},{k:'rain',i:'☔',n:'Chuva mais forte',d:'+50% de dano e recarga mais rápida da chuva',c:l=>50+40*l,max:4}];
-const WFOE={zumbi:{hp:3,spd:34,dmg:4,r:15,g:2,c:'#5a8a4a',c2:'#2a4a22'},corredor:{hp:2,spd:72,dmg:3,r:12,g:2,c:'#c87a3a',c2:'#6a3a1a'},morcego:{hp:2,spd:58,dmg:3,r:12,g:3,c:'#6a4a8a',c2:'#2a1a3a',fly:1},
-  bruto:{hp:11,spd:22,dmg:9,r:22,g:5,c:'#7a5a4a',c2:'#3a2a20'},escudo:{hp:6,spd:30,dmg:5,r:16,g:4,c:'#7a7a8a',c2:'#3a3a4a',arm:.5},chefe:{hp:70,spd:15,dmg:20,r:36,g:40,c:'#8a2a3a',c2:'#3a0a14'}};
+const WUP=[{k:'dmg',i:'🏹',n:'Flechas afiadas',d:'+30% de dano',c:l=>14+11*l,max:10},{k:'rate',i:'⚡',n:'Mãos rápidas',d:'+15% de cadência',c:l=>14+11*l,max:8},
+  {k:'multi',i:'➶',n:'Flecha extra',d:'+1 flecha por disparo',c:l=>45+45*l,max:3},{k:'pierce',i:'🎯',n:'Perfuração',d:'atravessa +1 monstro',c:l=>35+30*l,max:3},
+  {k:'fire',i:'🔥',n:'Flechas de fogo',d:'explodem e ferem quem está perto',c:l=>50+40*l,max:3},{k:'wall',i:'🧱',n:'Reforçar muralha',d:'+25 de vida máxima e conserta tudo',c:l=>25+15*l,max:8},
+  {k:'ally',i:'🛡',n:'Besteiro aliado',d:'um ajudante atira sozinho',c:l=>65+55*l,max:2},{k:'rain',i:'☔',n:'Chuva mais forte',d:'+50% de dano e recarga mais rápida da chuva',c:l=>40+35*l,max:4}];
+const WFOE={zumbi:{hp:2,spd:34,dmg:4,r:15,g:2,c:'#5a8a4a',c2:'#2a4a22'},corredor:{hp:1.5,spd:72,dmg:3,r:12,g:2,c:'#c87a3a',c2:'#6a3a1a'},morcego:{hp:1.5,spd:58,dmg:3,r:12,g:3,c:'#6a4a8a',c2:'#2a1a3a',fly:1},
+  bruto:{hp:6,spd:22,dmg:9,r:22,g:5,c:'#7a5a4a',c2:'#3a2a20'},escudo:{hp:4,spd:30,dmg:5,r:16,g:4,c:'#7a7a8a',c2:'#3a3a4a',arm:.5},chefe:{hp:26,spd:13,dmg:20,r:36,g:40,c:'#8a2a3a',c2:'#3a0a14'}};
 const WY=470,WTX=240,WTY=490;let WD=null;
 function jtext(c,t,x,y,sz,col){c.font=sz+'px "Lilita One",sans-serif';c.textAlign='center';c.textBaseline='middle';c.lineWidth=Math.max(3,sz/6);c.strokeStyle='rgba(0,0,0,.75)';c.strokeText(t,x,y);c.fillStyle=col;c.fillText(t,x,y)}
 function joustOpen(){ensureAudio();state='wall';show('joustMenu');setTrack('joust');wallList()}
@@ -2239,23 +2239,23 @@ function wallList(){WD=null;$('jList').hidden=false;$('jGame').hidden=true;const
   $('jRank').innerHTML=R.length?'<table class="dgr">'+R.map((e,i)=>'<tr><td>'+(i+1)+'</td><td>Onda '+e.w+'</td><td>'+e.k+' monstros</td></tr>').join('')+'</table><p class="hint">Ranking local deste aparelho. O ranking online vem depois.</p>':'<p class="hint">Ainda não há defesas registradas. Seja o primeiro!</p>'}
 function wallStart(){WD={wave:0,ph:'fight',gold:0,kills:0,hp:100,max:100,up:{},en:[],ar:[],fx:[],fl:[],cd:0,aim:{x:WTX,y:200},hold:false,rainCd:0,left:0,spT:0,t:0,shake:0,ac:[0,0],flash:0,banner:null,face:1,draw:0};
   $('jList').hidden=true;$('jGame').hidden=false;$('jShop').hidden=true;wallWave();if(!wallLoop.on){wallLoop.on=1;wallLoop.l=0;requestAnimationFrame(wallLoop)}}
-function wallWave(){const w=WD;w.wave++;w.ph='fight';w.left=Math.round(6+w.wave*2.4);w.spT=1.2;w.boss=w.wave%5===0;w.banner={t:0,txt:w.boss?'Onda '+w.wave+': CHEFE!':'Onda '+w.wave};$('jShop').hidden=true;$('bJRain').hidden=false;$('bJQuit').hidden=false;wallHud();if(w.boss)SFX.roar()}
-const wlv=k=>WD.up[k]||0,wdm=()=>1+.25*wlv('dmg');
+function wallWave(){const w=WD;w.wave++;w.ph='fight';w.left=Math.min(60,Math.round(5+w.wave*2.2));w.spT=1.2;w.boss=w.wave%5===0;w.banner={t:0,txt:w.boss?'Onda '+w.wave+': CHEFE!':'Onda '+w.wave};$('jShop').hidden=true;$('bJRain').hidden=false;$('bJQuit').hidden=false;wallHud();if(w.boss)SFX.roar()}
+const wlv=k=>WD.up[k]||0,wdm=()=>1+.3*wlv('dmg');
 function wallSpawn(){const w=WD,n=w.wave;let ty='zumbi';const r=Math.random();
   if(w.boss&&w.left===1)ty='chefe';else if(n>=6&&r<.12)ty='escudo';else if(n>=4&&r<.26)ty='bruto';else if(n>=3&&r<.42)ty='morcego';else if(n>=2&&r<.62)ty='corredor';
-  const F=WFOE[ty],hm=1+n*.17+(n>10?(n-10)*.08:0);w.en.push({ty,F,x:30+Math.random()*420,y:-30,hp:F.hp*hm,max:F.hp*hm,spd:F.spd*(1+Math.min(.5,n*.015)),hit:0,t:Math.random()*6,atk:0,burn:0})}
+  const F=WFOE[ty],hm=(1+n*.12+Math.pow(Math.max(0,n-6),2)*.04)*(ty==='chefe'?1+n/12:1);w.en.push({ty,F,x:30+Math.random()*420,y:-30,hp:F.hp*hm,max:F.hp*hm,spd:F.spd*(1+Math.min(.6,n*.02)),hit:0,t:Math.random()*6,atk:0,burn:0})}
 function wallShoot(){const w=WD,a=Math.atan2(w.aim.y-(WTY-34),w.aim.x-WTX),m=wlv('multi');w.face=w.aim.x>=WTX?1:-1;w.draw=.15;
   for(let k=0;k<=m;k++){const aa=a+(k-m/2)*.12;w.ar.push({x:WTX,y:WTY-34,vx:Math.cos(aa)*640,vy:Math.sin(aa)*640,p:wlv('pierce'),hit:[],t:0,fire:wlv('fire')>0})}SFX.arrow()}
 function wallHurt(e,d,src){const w=WD;if(e.hp<=0)return;if(e.F.arm&&src==='ar'&&e.y<WY-30)d*=e.F.arm;e.hp-=d;e.hit=.12;w.fl.push({x:e.x,y:e.y-e.F.r-6,t:0,txt:d>=1?Math.round(d)+'':d.toFixed(1),c:'#fff'});
   if(e.hp<=0){w.kills++;const g=e.F.g;w.gold+=g;w.fl.push({x:e.x,y:e.y-e.F.r-20,t:0,txt:'+'+g,c:'#ffd24a'});for(let i=0;i<10;i++){const a=Math.random()*TAU,v=40+Math.random()*120;w.fx.push({x:e.x,y:e.y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-60,t:0,life:.6,c:i%2?e.F.c:'#ffd24a',s:2+Math.random()*2})}
     if(e.ty==='chefe'){w.shake=10;SFX.death();for(let i=0;i<30;i++){const a=Math.random()*TAU,v=60+Math.random()*200;w.fx.push({x:e.x,y:e.y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-80,t:0,life:1,c:['#ffd24a','#ff7a3a','#fff'][i%3],s:3})}}else SFX.kill()}else if(Math.random()<.5)SFX.hit()}
-function wallRain(){const w=WD;if(!w||w.ph!=='fight'||w.rainCd>0)return;w.rainCd=Math.max(12,25-2.5*wlv('rain'));const d=4*wdm()*(1+.5*wlv('rain'));
+function wallRain(){const w=WD;if(!w||w.ph!=='fight'||w.rainCd>0)return;w.rainCd=Math.max(10,20-2.5*wlv('rain'));const d=4*wdm()*(1+.5*wlv('rain'));
   for(let i=0;i<60;i++)w.fx.push({k:'fall',x:Math.random()*480,y:-Math.random()*300,vx:-30,vy:700,t:0,life:.9,c:'#e8d8b0',s:1});setTimeout(()=>{if(WD===w)for(const e of w.en)wallHurt(e,d,'rain');w.shake=Math.max(w.shake,5)},450);SFX.arrow();wallHud()}
 function wallEnd(){const w=WD;w.ph='over';const M=META.wall,rew=w.wave*6+Math.floor(w.kills/4);M.runs++;const nb=w.wave>M.best;if(nb)M.best=w.wave;M.rank.push({w:w.wave,k:w.kills,d:Date.now()});M.rank.sort((a,b)=>b.w-a.w||b.k-a.k);M.rank.length=Math.min(M.rank.length,10);
   META.brasas+=rew;w.rew=rew;w.nb=nb;if(w.wave>=10)achieve('muro10');if(w.wave>=25)achieve('muro25');passAdd(20+w.wave*2);saveMeta();SFX.death();$('bJRain').hidden=true;$('bJQuit').hidden=true;wallHud();
   const s=$('jShop');s.hidden=false;s.innerHTML='<div class="wend"><b>A muralha caiu na onda '+w.wave+'</b><small>'+w.kills+' monstros derrotados · +'+rew+' brasas'+(nb?' · novo recorde!':'')+'</small><div class="mrow"><button class="btn alt" id="bJOut">Sair</button><button class="btn" id="bJAgain">Jogar de novo</button></div></div>';
   $('bJOut').onclick=()=>{SFX.click();wallList()};$('bJAgain').onclick=()=>{SFX.click();wallStart()}}
-function wallShop(){const w=WD;w.ph='shop';const bonus=10+w.wave*2;w.gold+=bonus;w.hp=Math.min(w.max,w.hp+w.max*.15);$('bJRain').hidden=true;SFX.levelup();
+function wallShop(){const w=WD;w.ph='shop';const bonus=12+w.wave*3;w.gold+=bonus;w.hp=Math.min(w.max,w.hp+w.max*.15);$('bJRain').hidden=true;SFX.levelup();
   const s=$('jShop');s.hidden=false;let h='<div class="wsh"><b>Onda '+w.wave+' vencida! +'+bonus+' de ouro</b><small>Ouro: <span id="wGold">'+w.gold+'</span> · gaste antes da próxima onda</small><div class="wgrid">';
   for(const u of WUP){const l=wlv(u.k),mx=l>=u.max,c=u.c(l);h+='<button class="wup" data-k="'+u.k+'"'+(mx||c>w.gold?' disabled':'')+'><i>'+u.i+'</i><b>'+u.n+' '+(l?'nv.'+l:'')+'</b><small>'+u.d+'</small><em>'+(mx?'Máximo':c+' ouro')+'</em></button>'}
   h+='</div><button class="btn" id="bJNext">Próxima onda</button></div>';s.innerHTML=h;
@@ -2270,7 +2270,7 @@ function wallStep(dt){const w=WD;w.t+=dt;w.shake=Math.max(0,w.shake-dt*20);w.fla
   for(let i=w.fl.length-1;i>=0;i--){const f=w.fl[i];f.t+=dt;f.y-=30*dt;if(f.t>.8)w.fl.splice(i,1)}
   if(w.ph!=='fight')return;
   const pr=w.rainCd;w.rainCd=Math.max(0,w.rainCd-dt);if(Math.ceil(pr)!==Math.ceil(w.rainCd))wallHud();
-  w.cd-=dt;const iv=.42/(1+.15*wlv('rate'));if(w.hold&&w.cd<=0){w.cd=iv;wallShoot()}
+  w.cd-=dt;const iv=.36/(1+.15*wlv('rate'));if(w.hold&&w.cd<=0){w.cd=iv;wallShoot()}
   // ajudantes
   for(let a=0;a<wlv('ally');a++){w.ac[a]-=dt;if(w.ac[a]<=0){const ax=a?380:100;let b=null,bd=1e9;for(const e of w.en){const d=Math.hypot(e.x-ax,e.y-WY);if(d<bd&&e.y>-10){bd=d;b=e}}if(b){w.ac[a]=1.1;const an=Math.atan2(b.y-(WY-10),b.x-ax);w.ar.push({x:ax,y:WY-10,vx:Math.cos(an)*560,vy:Math.sin(an)*560,p:0,hit:[],t:0,ally:1})}}}
   if(w.left>0){w.spT-=dt;if(w.spT<=0){wallSpawn();w.left--;w.spT=Math.max(.35,1.5-w.wave*.05)*(.6+Math.random()*.8)}}
