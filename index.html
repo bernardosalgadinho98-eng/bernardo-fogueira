@@ -421,7 +421,7 @@ const keys={};let joy=null;
 
 /* ---------- jogo novo ---------- */
 function newGame(){
-  G={t:0,day:1,phase:'day',phaseT:0,phaseLen:95,
+  G={t:0,day:1,phase:'day',phaseT:0,phaseLen:110,
     fire:{lvl:1,fuel:95,hp:100,fed:false,flick:1},
     fenceBuilt:false,fence:[],towers:TOWER_ANG.map(a=>({a,x:Math.cos(a)*FENCE_R,y:Math.sin(a)*FENCE_R,lvl:0,cd:0,aim:0})),
     huts:[],villagers:[],piles:[],fenceLvl:1,altarUses:0,endless:false,finalNight:false,finalPending:false,chest:{w:{x:178,y:-14,n:0,kind:'w'},m:{x:178,y:34,n:0,kind:'m'}},trap:{lvl:0,t:0,x:0,y:FENCE_R+140,pile:{x:46,y:FENCE_R+148,n:0,kind:'m'}},
@@ -519,6 +519,10 @@ function buildPads(){
     done:()=>{G.fenceLvl=(G.fenceLvl||1)+1;for(const s of G.fence){s.max=segMax();s.hp=s.max}banner('Cerca reforçada!','Mais resistente e com espinhos que ferem os monstros')}});
   for(let i=0;i<3;i++)pad({id:'merc'+i,x:-480+110*i,y:-272,label:()=>{const M=G.merchant;return M?MERC[M.items[i]].n:''},show:()=>!!G.merchant&&G.phase==='day',
     cost:()=>{const M=G.merchant;return M&&!M.bought[i]?MERC[M.items[i]].c:null},done:()=>{const M=G.merchant;if(!M)return;M.bought[i]=1;const it=MERC[M.items[i]];it.f();META.mercN=(META.mercN||0)+1;if(META.mercN>=10)achieve('mercador');floatTxt(P.x,P.y-80,it.n+': '+it.d,'#ffe08a',true)}});
+  pad({id:'builder',x:160,y:-134,label:'Construtor',show:()=>G.fenceBuilt,cost:()=>G.villagers.some(v=>v.kind==='builder')?null:{w:40,m:25},
+    done:()=>{addBuilder();banner('Construtor contratado','Repara cerca e torres, e usa o baú para melhorar o que já foi construído')}});
+  pad({id:'warriors',x:310,y:110,label:'Cabana de Guerreiros',show:()=>G.fire.lvl>=3,cost:()=>G.huts.some(h=>h.kind==='warrior')?null:{w:50,m:30},
+    done:()=>{addHut('warrior',310,110);addVillager('warrior',G.huts[G.huts.length-1])}});
   pad({id:'altar',x:0,y:-FENCE_R-75,label:'Altar: carne vira XP',show:()=>G.fenceBuilt,cost:()=>({w:0,m:8}),repeat:true,
     done:()=>{gainXP(10+3*G.plv);G.altarUses++;burst(0,-FENCE_R-75,'#b48cff',24,200,5,-60);floatTxt(0,-FENCE_R-110,'+XP','#d9c4ff',true);if(G.altarUses>=1)achieve('altar')}});
   pad({id:'trap',x:0,y:FENCE_R+75,label:()=>G.trap.lvl?'Armadilha nv.'+(G.trap.lvl+1):'Armadilha de caça',show:()=>G.fenceBuilt,cost:()=>G.trap.lvl>=3?null:[{w:20,m:0},{w:35,m:8},{w:60,m:15}][G.trap.lvl],repeat:true,
@@ -531,7 +535,7 @@ function buildPads(){
 function padLabel(p){return typeof p.label==='function'?p.label():p.label}
 function padActive(p){return p.need&&p.show()}
 function fenceDamage(){if(!G.fenceBuilt)return 0;let a=0,b=0;for(const s of G.fence){a+=s.hp;b+=s.max}return b?1-a/b:0}
-function addHut(kind,x,y){const h={kind,x,y,pile:{x:x+(kind==='lumber'?52:-52),y:y+8,n:0,kind:kind==='lumber'?'w':'m'}};G.huts.push(h);if(kind!=='collector')G.piles.push(h.pile);addVillager(kind,h);if(kind==='collector'){banner('Recolhedor contratado','Ele junta o que estiver no chão e guarda no baú');return}
+function addHut(kind,x,y){const h={kind,x,y,pile:{x:x+(kind==='lumber'?52:-52),y:y+8,n:0,kind:kind==='lumber'?'w':'m'}};G.huts.push(h);if(kind!=='collector'&&kind!=='warrior')G.piles.push(h.pile);addVillager(kind,h);if(kind==='collector'){banner('Recolhedor contratado','Ele junta o que estiver no chão e guarda no baú');return}if(kind==='warrior'){banner('Guerreiros lenhadores!','De dia cortam lenha para o baú, de noite lutam ao seu lado');return}
   banner(kind==='lumber'?'Lenhador contratado':'Caçador contratado',kind==='lumber'?'Ele alimenta a fogueira e guarda o resto na pilha':'Ele caça javalis e deixa carne na pilha')}
 function addVillager(kind,h){G.villagers.push({kind,hut:h,x:h.x,y:h.y+20,state:'seek',target:null,carry:0,t:0,face:1,walk:0,swingA:0,hidden:false})}
 
@@ -661,18 +665,18 @@ function shake(v){G.shake=Math.max(G.shake,v)}
 /* ---------- ciclo dia/noite ---------- */
 function startNight(){
   G.hurtNight=false;
-  G.phase='night';G.phaseT=0;G.phaseLen=Math.min(70,42+4*G.day);
-  const n=G.day;let total=Math.round((5+Math.floor(n*3.2))*(MAP.emul||1)*(G.endless?1.2:1));G.finalNight=!G.endless&&n>=MAP.final;if(G.finalNight)total=Math.round(total*1.3);G.merchant=null;G.blood=!G.finalNight&&!G.daily&&n>=3&&n%5!==0&&Math.random()<.14;if(G.blood)total*=2;G.rain=Math.random()<.2;G.spawnLeft=total;G.spawnT=1.5;G.spawnEvery=(G.phaseLen*.62)/total;G.bossPending=(n%5===0);
+  G.phase='night';G.phaseT=0;G.phaseLen=Math.min(95,55+5*G.day);G.mq=mqNew(true);
+  const n=G.day;let total=Math.round((5+Math.floor(n*3.2))*1.25*(MAP.emul||1)*(G.endless?1.2:1));G.finalNight=!G.endless&&n>=MAP.final;if(G.finalNight)total=Math.round(total*1.3);G.merchant=null;G.blood=!G.finalNight&&!G.daily&&n>=3&&n%5!==0&&Math.random()<.14;if(G.blood)total*=2;G.rain=Math.random()<.2;G.spawnLeft=total;G.spawnT=1.5;G.spawnEvery=(G.phaseLen*.62)/total;G.bossPending=(n%5===0);
   if(G.finalNight){banner('Noite final','O Senhor da Noite chegou. Derrote-o e aguente até o amanhecer!');G.finalPending=true;setTrack('boss')}else{banner('Noite '+n,n%5===0?'O Rei das Sombras está vindo...':'Defenda a fogueira!');setTrack(n%5===0?'boss':'night')}if(!G.finalNight&&n<=2&&n%5&&MAP.tip)setTimeout(()=>{if(G&&G.phase==='night')floatTxt(P.x,P.y-90,MAP.tip,'#ffd27a',true)},2200);SFX.night();if(G.blood)setTimeout(()=>{if(G&&G.blood)banner('Lua de sangue!','O dobro de monstros. Bônus em dobro ao amanhecer')},1800);else if(G.rain)setTimeout(()=>{if(G&&G.rain)banner('Chuva','A fogueira gasta lenha mais rápido')},1800);
   for(const v of G.villagers){v.state='home';if(v.target){v.target.claimed=null;v.target=null}}
 }
 function startDay(){
-  const survived=G.day;const wasFinal=G.finalNight;G.finalNight=false;qAdd('night');if(!G.hurtNight)qAdd('nodmg');G.hurtNight=false;evNight();G.day++;G.phase='day';G.phaseT=0;G.phaseLen=60;
+  const survived=G.day;const wasFinal=G.finalNight;G.finalNight=false;qAdd('night');if(!G.hurtNight)qAdd('nodmg');G.hurtNight=false;evNight();G.day++;G.phase='day';G.phaseT=0;G.phaseLen=80;G.mq=mqNew(false);
   for(const e of G.enemies){burst(e.x,e.y-14,'#3a2b4a',10,90,6,-40)}G.enemies=[];
   {const wb=G.blood;G.blood=false;if(wb){achieve('lua');addDrop(30,60,'w',20);addDrop(-30,60,'m',12)}G.rain=Math.random()<.18;G.eclipse=!G.rain&&G.day>=4&&Math.random()<.1;G.eclT=0;
    G.merchant=G.day>=3&&Math.random()<.32?{items:(()=>{const a=[0,1,2,3,4,5];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a.slice(0,3)})(),bought:[0,0,0]}:null;for(const p of PADS)if(p.id.startsWith('merc'))p.need=p.cost();
    const msg=wb?['Lua de sangue vencida!','Bônus em dobro ao lado da fogueira']:G.merchant?['Mercador viajante chegou!','Ele está a oeste, fora da cerca, até o anoitecer']:G.eclipse?['Eclipse!','O dia escureceu e monstros vão aparecer']:G.rain?['Chuva','A fogueira gasta lenha mais rápido']:null;if(msg)setTimeout(()=>{if(G&&state==='play')banner(msg[0],msg[1])},3200)}
-  G.fire.hp=100;for(const s of G.fence){if(s.max)s.hp=Math.min(s.max,s.hp+s.max*.5)}
+  for(const T of G.towers)if(T.lvl&&T.hp!=null)T.hp=Math.min(towerMax(T),T.hp+towerMax(T)*.4);G.fire.hp=100;for(const s of G.fence){if(s.max)s.hp=Math.min(s.max,s.hp+s.max*.5)}
   const bonus=3+survived*2;addDrop(30,30,'w',Math.min(30,bonus));addDrop(-30,30,'m',Math.min(20,Math.ceil(bonus*.6)));
     banner('Você sobreviveu à noite '+survived+'!','Bônus ao lado da fogueira');SFX.day();setTrack('day');
   if(survived>(META.best[MAP.id]||0)){META.best[MAP.id]=survived;saveMeta()}
@@ -695,6 +699,7 @@ function spawnEnemy(type){
 
 /* ---------- update ---------- */
 function update(dt){
+  if(!G.mq)G.mq=mqNew(G.phase==='night');
   G.t+=dt;G.phaseT+=dt;saveT+=dt;if(saveT>6){saveT=0;saveRun()}
   if(G.phase==='day'&&G.phaseT>=G.phaseLen)startNight();
   else if(G.phase==='night'&&G.phaseT>=G.phaseLen&&G.enemies.length===0&&G.spawnLeft<=0)startDay();
@@ -773,7 +778,7 @@ function updatePlayer(dt){
   if(holdReady&&P.depT<=0&&P.stack.length){
     let did=false;
     for(const p of PADS){if(!padActive(p))continue;if(Math.abs(P.x-p.x)<32&&Math.abs(P.y-p.y)<32){
-      if(p.store||p.trash){const k=P.stack.pop();if(p.store){G.chest[k].n++;fly(P.x,P.y-30-P.stack.length*5,G.chest[k].x,G.chest[k].y,k)}else{burst(p.x,p.y-10,'#8a8a8a',4,90,3)}did=true;SFX.drop();p.flash=.12;break}
+      if(p.store||p.trash){const k=P.stack.pop();if(p.store){G.chest[k].n++;qAdd('chest');fly(P.x,P.y-30-P.stack.length*5,G.chest[k].x,G.chest[k].y,k)}else{burst(p.x,p.y-10,'#8a8a8a',4,90,3)}did=true;SFX.drop();p.flash=.12;break}
       for(const k of['w','m']){if(p.need[k]>0){const i=P.stack.lastIndexOf(k);if(i>=0){P.stack.splice(i,1);p.need[k]--;fly(P.x,P.y-30-P.stack.length*5,p.x,p.y,k);did=true;SFX.drop();break}}}
       if(did){p.flash=.15;if(p.need.w<=0&&p.need.m<=0&&!p.store&&!p.trash)completePad(p)}break}}
     if(!did&&dst(P.x,P.y,0,0)<80&&G.fire.fuel<maxFuel()-2){const i=P.stack.lastIndexOf('w');if(i>=0){P.stack.splice(i,1);G.fire.fuel=Math.min(maxFuel(),G.fire.fuel+5);G.fire.fed=true;fly(P.x,P.y-30-P.stack.length*5,0,0,'w');did=true;SFX.drop()}}
@@ -854,6 +859,7 @@ function updateEnemies(dt){
       const seg=G.fence[segIdx(e.x,e.y)];
       if(inward&&seg.hp>0){stop=true;if(e.atk<=0){e.atk=1;seg.hp=Math.max(0,seg.hp-e.dmg);seg.hit=.2;burst(e.x-e.x/r*14,e.y-e.y/r*14,'#a07040',4,100,3);SFX.fence();if((G.fenceLvl||1)>1){e.hp-=(G.fenceLvl-1)*6;e.hurt=.1;if(e.hp<=0){e.hp=.0001;hitEnemy(e,1,false)}}if(seg.hp<=0){burst(e.x,e.y,'#7a5232',14,180,4);shake(3)}}}
     }
+    if(!stop&&tgt!=='p'&&e.type!=='final'){for(const T of G.towers){if(T.lvl&&T.hp>0&&d2(e.x,e.y,T.x,T.y)<(e.r+32)**2){stop=true;if(e.atk<=0){e.atk=1;T.hp-=e.dmg;T.hit=.2;burst(T.x,T.y-24,'#a07040',4,100,3);SFX.fence();if(T.hp<=0){T.hp=0;burst(T.x,T.y-30,'#7a5232',18,200,5);shake(4);floatTxt(T.x,T.y-80,'Torre destruída!','#ff8a6a',true)}}break}}}
     if(tgt==='p'&&l<e.r+16){stop=true;if(e.atk<=0){e.atk=1;hurtPlayer(e.dmg);if(MAP.foe==='gelo')P.slow=1.6;if(MAP.foe==='escorpiao'&&e.type!=='bruto')P.poison=2.6}}
     if(tgt==='fire'&&l<46+e.r){stop=true;if(e.atk<=0){e.atk=1;G.fire.hp-=e.dmg*.8;G.fire.fuel=Math.max(0,G.fire.fuel-e.dmg*.4);burst(0,-10,'#ffb060',8,160,4);shake(3);if(G.t-(G.fireMsgT||-9)>2.5){G.fireMsgT=G.t;floatTxt(0,-60,'A fogueira está sendo atacada!','#ff8a6a')}}}
     if(!stop){e.x+=mvx*e.spd*dt;e.y+=mvy*e.spd*dt}
@@ -884,8 +890,9 @@ function updateBoars(dt){
 }
 function updateTrees(dt){for(const t of G.trees)t.shake=Math.max(0,t.shake-dt*5)}
 function regrowTrees(){let n=0;for(const t of G.trees)if(!t.alive&&t.regrowDay<=G.day){t.alive=true;t.hp=t.max;t.grow=1;n++}return n}
+const towerMax=T=>[0,150,240,360][T.lvl]||0;
 function updateTowers(dt){
-  for(const T of G.towers){if(!T.lvl)continue;T.cd-=dt;
+  for(const T of G.towers){if(!T.lvl)continue;if(T.hp==null||T.lvlHp!==T.lvl){T.hp=towerMax(T);T.lvlHp=T.lvl}T.hit=Math.max(0,(T.hit||0)-dt);if(T.hp<=0)continue;T.cd-=dt;
     if(T.cd<=0){let best=null,bd=(260+40*T.lvl)**2;for(const e of G.enemies){const d=d2(T.x,T.y,e.x,e.y);if(d<bd){bd=d;best=e}}
       if(best){T.cd=Math.max(.35,.95-.18*T.lvl)*(isC('rex')?.7:1);T.aim=Math.atan2(best.y-T.y,best.x-T.x);G.arrows.push({x:T.x,y:T.y-58,tgt:best,dmg:[0,9,16,26][T.lvl],t:0});SFX.arrow()}else T.cd=.2}}
   for(const a of G.arrows.slice()){a.t+=dt;const e=a.tgt;
@@ -895,7 +902,8 @@ function updateTowers(dt){
 }
 function updateVillagers(dt){
   for(const v of G.villagers){
-    v.t-=dt;v.swingA=Math.max(0,v.swingA-dt*4);
+    v.t-=dt;v.swingA=Math.max(0,v.swingA-dt*4);v.hurt=Math.max(0,(v.hurt||0)-dt);
+    if(v.kind==='builder'){builderAI(v,dt);continue}if(v.kind==='warrior'){warriorAI(v,dt);continue}
     if(v.kind==='collector'&&v.state!=='home'){v.items=v.items||[];
       if(v.state==='seek'||v.state==='go'){let best=null,bd=650*650;if(v.items.length<10)for(const d of G.drops){if(d.attract||d.z>0||d.t<1)continue;if(d2(d.x,d.y,0,0)>900*900)continue;const q=d2(d.x,d.y,v.x,v.y);if(q<bd){bd=q;best=d}}
         if(best){moveTo(v,best.x,best.y,120,dt);if(dst(v.x,v.y,best.x,best.y)<12){v.items.push(best.kind);G.drops.splice(G.drops.indexOf(best),1);SFX.pick()}}
@@ -921,6 +929,33 @@ function updateVillagers(dt){
     }
   }
 }
+function addBuilder(){G.villagers.push({kind:'builder',hut:{x:150,y:-96},x:150,y:-96,state:'seek',t:0,face:1,walk:0,swingA:0,hidden:false})}
+const builderPad=p=>(p.id.startsWith('tower')&&G.towers[+p.id.slice(5)]&&G.towers[+p.id.slice(5)].lvl>0)||p.id==='fenceup'||(p.id==='trap'&&G.trap.lvl>0);
+function builderAI(v,dt){let tg=v.tg;
+  const ok=o=>o&&(o.seg?o.seg.max&&o.seg.hp<o.seg.max:o.T?o.T.lvl&&o.T.hp<towerMax(o.T):o.pad?padActive(o.pad)&&G.chest.w.n>=o.pad.need.w&&G.chest.m.n>=o.pad.need.m:false);
+  if(!ok(tg)){tg=null;let bd=1e12;
+    if(G.fenceBuilt)for(let i=0;i<NSEG;i++){const sg=G.fence[i];if(sg.max&&sg.hp<sg.max*.9){const a=(i+.5)/NSEG*TAU,x=Math.cos(a)*(FENCE_R-16),y=Math.sin(a)*(FENCE_R-16),d=d2(x,y,v.x,v.y)*(sg.hp<=0?.3:1);if(d<bd){bd=d;tg={seg:sg,x,y}}}}
+    for(const T of G.towers)if(T.lvl&&T.hp!=null&&T.hp<towerMax(T)*.9){const d=d2(T.x,T.y,v.x,v.y)*.4;if(d<bd){bd=d;tg={T,x:T.x*.88,y:T.y*.88+8}}}
+    if(!tg&&G.phase==='day'&&v.t<=0){v.t=1.5;for(const p of PADS){if(builderPad(p)&&padActive(p)&&G.chest.w.n>=p.need.w&&G.chest.m.n>=p.need.m){tg={pad:p,x:p.x,y:p.y};break}}}
+    v.tg=tg}
+  if(!tg){moveTo(v,150,-96,70,dt);return}
+  if(dst(v.x,v.y,tg.x,tg.y)>16){moveTo(v,tg.x,tg.y,115,dt);return}
+  if(v.swingA<=0)v.swingA=1;v.face=(tg.T?tg.T.x:tg.seg?tg.x*1.1:tg.x)>=v.x?1:-1;if(Math.random()<dt*3)snd(rnd(300,380),.05,'square',.02,-60,'hammer');
+  if(tg.seg){tg.seg.hp=Math.min(tg.seg.max,Math.max(tg.seg.hp,0)+dt*16);if(Math.random()<dt*5)burst(tg.x,tg.y-10,'#c89a60',2,80,3)}
+  else if(tg.T){tg.T.hp=Math.min(towerMax(tg.T),tg.T.hp+dt*20);if(Math.random()<dt*5)burst(tg.T.x,tg.T.y-30,'#c89a60',2,80,3)}
+  else if(tg.pad){const p=tg.pad;G.chest.w.n-=p.need.w;G.chest.m.n-=p.need.m;const lb=padLabel(p);completePad(p);floatTxt(p.x,p.y-60,'Construtor fez: '+lb,'#ffe08a',true);v.tg=null}}
+function warriorAI(v,dt){if(v.hp==null)v.hp=90;if(v.down>0){v.down-=dt;v.hidden=true;if(v.down<=0){v.hidden=false;v.hp=90;v.x=v.hut.x;v.y=v.hut.y+20}return}
+  if(G.phase==='night'||G.enemies.length){if(v.tree){v.tree.claimed=null;v.tree=null}let e=v.tgt;
+    if(!e||!G.enemies.includes(e)){e=null;let bd=1e12;for(const q of G.enemies){if(d2(q.x,q.y,0,0)>(FENCE_R+280)**2)continue;const d=d2(q.x,q.y,v.x,v.y);if(d<bd){bd=d;e=q}}v.tgt=e}
+    if(!e){moveTo(v,v.hut.x*.55,v.hut.y*.55,90,dt);return}
+    if(dst(v.x,v.y,e.x,e.y)>e.r+18){moveTo(v,e.x,e.y,125,dt);return}
+    v.face=e.x>=v.x?1:-1;if(v.t<=0){v.t=.7;v.swingA=1;hitEnemy(e,8+G.day*.9,false)}
+    if(G.enemies.includes(e)){v.hp-=e.dmg*.45*dt;if(Math.random()<dt*2)v.hurt=.15;if(v.hp<=0){v.down=20;v.tgt=null;burst(v.x,v.y-20,'#d04040',10,140,4);floatTxt(v.x,v.y-50,'Guerreiro caiu','#ff8080')}}return}
+  v.hp=Math.min(90,v.hp+dt*5);v.carry=v.carry||0;
+  if(v.carry>=5){if(v.tree){v.tree.claimed=null;v.tree=null}const ch=G.chest.w;moveTo(v,ch.x,ch.y+30,95,dt);if(dst(v.x,v.y,ch.x,ch.y+30)<14){G.chest.w.n+=v.carry;fly(v.x,v.y-30,ch.x,ch.y,'w');v.carry=0}return}
+  let t=v.tree;if(!t||!t.alive){if(t)t.claimed=null;t=null;let bd=1e12;for(const q of G.trees){if(!q.alive||q.claimed)continue;const d=d2(q.x,q.y,v.x,v.y);if(d<bd){bd=d;t=q}}if(!t)return;t.claimed=v;v.tree=t}
+  if(dst(v.x,v.y,t.x,t.y)>30){moveTo(v,t.x,t.y,90,dt);return}
+  if(v.t<=0){v.t=.8;v.swingA=1;v.face=t.x>=v.x?1:-1;t.hp-=2;t.shake=1;burst(t.x,t.y-20,'#c89a60',3,100,3);v.carry++;if(t.hp<=0){t.alive=false;t.regrowDay=G.day+rint(2,3);t.claimed=null;v.carry+=2;v.tree=null}}}
 function moveTo(o,x,y,s,dt){const dx=x-o.x,dy=y-o.y,l=Math.hypot(dx,dy);if(l<1)return;const m=Math.min(l,s*dt);o.x+=dx/l*m;o.y+=dy/l*m;o.walk=(o.walk||0)+dt*12;if(Math.abs(dx)>2)o.face=dx>0?1:-1}
 
 function updateDrops(dt){
@@ -1052,7 +1087,7 @@ function drawPerson(c,x,y,face,walk,swingA,lk,tool,s,hurt){
   c.fillStyle=lk.skin;c.strokeStyle='#14100c';c.lineWidth=1.3;c.beginPath();c.arc(6,-17,3.3,0,TAU);c.fill();c.stroke();
   c.restore();
 }
-const VLOOK={collector:{skin:'#e0b48a',hair:'#6a4a2a',style:1,beard:0,shirt:'#3a5a8b',glasses:1},lumber:{skin:'#c99064',hair:'#3a2414',style:0,beard:1,shirt:'#8b3a2a',glasses:0},hunter:{skin:'#a8714a',hair:'#1a1a1a',style:3,beard:0,shirt:'#4f6b2a',glasses:0}};
+const VLOOK={builder:{skin:'#dcaa7e',hair:'#5a3a1e',style:0,beard:1,shirt:'#d9a020',glasses:0,hat:1},warrior:{skin:'#c99064',hair:'#a8743a',style:4,beard:1,shirt:'armadura',glasses:0,hat:4},collector:{skin:'#e0b48a',hair:'#6a4a2a',style:1,beard:0,shirt:'#3a5a8b',glasses:1},lumber:{skin:'#c99064',hair:'#3a2414',style:0,beard:1,shirt:'#8b3a2a',glasses:0},hunter:{skin:'#a8714a',hair:'#1a1a1a',style:3,beard:0,shirt:'#4f6b2a',glasses:0}};
 
 function drawTree(c,t){
   const sx=Math.sin(G.t*40)*t.shake*3;
@@ -1154,7 +1189,9 @@ function drawEnemy(c,e){
 }
 function drawEnemyEyes(c,e){const r=e.r,ey=e.y-r*1.35;c.fillStyle=MAP.eye;c.shadowColor=MAP.eye;c.shadowBlur=8;c.beginPath();c.ellipse(e.x-r*.35,ey,r*.16,r*.1+1,.3,0,TAU);c.ellipse(e.x+r*.35,ey,r*.16,r*.1+1,-.3,0,TAU);c.fill();c.shadowBlur=0}
 function drawTower(c,T){
-  c.save();c.translate(T.x,T.y);
+  if(T.hp!=null&&T.hp<=0){c.save();c.translate(T.x,T.y);c.fillStyle='rgba(0,0,0,.35)';c.beginPath();c.ellipse(0,0,24,9,0,0,TAU);c.fill();c.strokeStyle='#2a1a0e';c.lineWidth=4;c.beginPath();c.moveTo(-14,0);c.lineTo(-18,-14);c.moveTo(12,0);c.lineTo(20,-10);c.moveTo(-6,-2);c.lineTo(10,-8);c.stroke();c.fillStyle='#5a3a22';rr(c,-16,-8,30,7,2);c.fill();txt(c,'Quebrada',0,-30,11,'#ff9a8a');c.restore();return}
+  if(T.hp!=null&&T.hp<towerMax(T))bar(c,T.x,T.y-104,40,T.hp/towerMax(T),'#4fd65a');
+  c.save();c.translate(T.x+(T.hit>0?Math.sin(G.t*80)*2:0),T.y);
   c.fillStyle='rgba(0,0,0,.35)';c.beginPath();c.ellipse(0,0,24,9,0,0,TAU);c.fill();
   c.strokeStyle='#2a1a0e';c.lineWidth=4;
   for(const sx of[-14,14]){c.beginPath();c.moveTo(sx,0);c.lineTo(sx*.75,-48);c.stroke()}
@@ -1171,11 +1208,11 @@ function drawHut(c,h){
   c.fillStyle='#6b4728';c.strokeStyle='#22140a';c.lineWidth=2;rr(c,-26,-30,52,30,3);c.fill();c.stroke();
   c.strokeStyle='rgba(0,0,0,.3)';c.lineWidth=1;for(let i=1;i<4;i++){c.beginPath();c.moveTo(-26,-30+i*7.5);c.lineTo(26,-30+i*7.5);c.stroke()}
   c.fillStyle='#1a100a';rr(c,-7,-20,14,20,2);c.fill();
-  c.fillStyle=h.kind==='lumber'?'#8b3a2a':h.kind==='collector'?'#3a5a8b':'#4f6b2a';c.strokeStyle='#22140a';c.lineWidth=2;c.beginPath();c.moveTo(-34,-28);c.lineTo(0,-56);c.lineTo(34,-28);c.closePath();c.fill();c.stroke();
+  c.fillStyle=h.kind==='lumber'?'#8b3a2a':h.kind==='collector'?'#3a5a8b':h.kind==='warrior'?'#5a5a66':'#4f6b2a';c.strokeStyle='#22140a';c.lineWidth=2;c.beginPath();c.moveTo(-34,-28);c.lineTo(0,-56);c.lineTo(34,-28);c.closePath();c.fill();c.stroke();
   if(h.kind==='lumber'){c.save();c.translate(18,-44);c.rotate(.6);c.strokeStyle='#5a3a1e';c.lineWidth=3;c.beginPath();c.moveTo(0,6);c.lineTo(0,-8);c.stroke();c.fillStyle='#c9ced6';c.fillRect(0,-9,6,6);c.restore()}
   else{c.fillStyle='#f0e6d8';c.beginPath();c.arc(18,-42,4,0,TAU);c.fill()}
   c.restore();
-  if(h.kind==='collector')return;
+  if(h.kind==='collector'||h.kind==='warrior')return;
   const p=h.pile;for(let i=0;i<Math.min(p.n,24);i++){const col=i%4,row=Math.floor(i/4);drawItem(c,p.kind,p.x-14+col*9+(row%2)*4,p.y-row*6,1)}
   if(p.n>0){txt(c,p.n+'',p.x,p.y-Math.min(6,Math.ceil(p.n/4))*6-14,13,'#fff')}
 }
@@ -1269,7 +1306,7 @@ function render(){
   L.sort((a,b)=>a[0]-b[0]);
   for(const[y,k,o]of L){
     if(k===0)drawTree(ctx,o);else if(k===1)drawBoar(ctx,o);else if(k===2)drawEnemy(ctx,o);
-    else if(k===3){drawPerson(ctx,o.x,o.y,o.face,o.walk,o.swingA,VLOOK[o.kind],o.kind==='lumber'?'axe':o.kind==='collector'?null:'spear',.85);if(o.items&&o.items.length){for(let i=0;i<o.items.length;i++)drawItem(ctx,o.items[i],o.x-o.face*6,o.y-40-i*5,.8)}if(o.carry){for(let i=0;i<Math.min(o.carry,8);i++)drawItem(ctx,o.kind==='lumber'?'w':'m',o.x-o.face*6,o.y-40-i*5,.8)}}
+    else if(k===3){drawPerson(ctx,o.x,o.y,o.face,o.walk,o.swingA,VLOOK[o.kind],o.kind==='lumber'||o.kind==='warrior'||o.kind==='builder'?'axe':o.kind==='collector'?null:'spear',.85,o.hurt>0?o.hurt:0);if(o.kind==='warrior'&&o.hp<90)bar(ctx,o.x,o.y-58,26,o.hp/90,'#4fd65a');if(o.items&&o.items.length){for(let i=0;i<o.items.length;i++)drawItem(ctx,o.items[i],o.x-o.face*6,o.y-40-i*5,.8)}if(o.carry){for(let i=0;i<Math.min(o.carry,8);i++)drawItem(ctx,o.kind==='lumber'?'w':'m',o.x-o.face*6,o.y-40-i*5,.8)}}
     else if(k===4)drawTower(ctx,o);else if(k===5)drawHut(ctx,o);else if(k===6)drawFire(ctx);
     else if(k===7)drawPlayer();else if(k===11)drawPet(ctx,o);else if(k===12)drawMerchant(ctx);
     else if(k===9)drawTrap(ctx,o);
@@ -1340,6 +1377,7 @@ function drawHUD(){
   const night=G.phase==='night',pad=12+SAFE.l,top=12+SAFE.t,cw0=92;
   // painel tempo
   const pw=Math.min(210,W*.48);
+  if(G.mq&&state==='play'){const q=G.mq,t='★ '+q.n+'  '+(q.done?'✓':q.p+'/'+q.g);ctx.fillStyle='rgba(30,18,10,.72)';rr(ctx,pad,top+63,pw,22,8);ctx.fill();txt(ctx,t,pad+8,top+74.5,12,q.done?'#9effa6':'#ffe0b0','left')}
   ctx.fillStyle='rgba(30,18,10,.78)';rr(ctx,pad,top,pw,58,12);ctx.fill();ctx.strokeStyle='rgba(0,0,0,.6)';ctx.lineWidth=2;ctx.stroke();
   txt(ctx,(night?'Noite ':'Dia ')+G.day+(G.endless?' ∞':'/'+MAP.final),pad+12,top+16,17,night?'#b9a6ff':'#ffd27a','left');
   const tl=Math.max(0,Math.ceil(G.phaseLen-G.phaseT));txt(ctx,night?(G.enemies.length+G.spawnLeft)+' monstros':tl+'s',pad+pw-10,top+16,13,'#eadbc3','right');
@@ -1386,12 +1424,12 @@ function saveRun(){if(!G||state!=='play'&&state!=='pause'&&state!=='levelup')ret
   const r2=n=>Math.round(n*10)/10;
   const d={v:1,map:MAP.id,daily:G.daily||null,nm:!!MAP.nm,at:Date.now(),
     G:{day:G.day,phase:G.phase,phaseT:G.phaseT,phaseLen:G.phaseLen,spawnLeft:G.spawnLeft,spawnT:G.spawnT,spawnEvery:G.spawnEvery||1,bossPending:!!G.bossPending,kills:G.kills,
-      fire:{lvl:G.fire.lvl,fuel:G.fire.fuel,hp:G.fire.hp,fed:G.fire.fed},fenceBuilt:G.fenceBuilt,fence:G.fence.map(f=>[r2(f.hp),f.max]),towers:G.towers.map(t=>t.lvl),up:G.up,
+      fire:{lvl:G.fire.lvl,fuel:G.fire.fuel,hp:G.fire.hp,fed:G.fire.fed},fenceBuilt:G.fenceBuilt,fence:G.fence.map(f=>[r2(f.hp),f.max]),towers:G.towers.map(t=>t.lvl),towerHp:G.towers.map(t=>t.hp==null?-1:Math.round(t.hp)),up:G.up,
       trap:{lvl:G.trap.lvl,t:G.trap.t,n:G.trap.pile.n},huts:G.huts.map(h=>[h.kind,h.x,h.y,h.pile.n]),vill:G.villagers.map(v=>v.kind),
       trees:G.trees.map(t=>[r2(t.x),r2(t.y),r2(t.s),t.alive?1:0,t.hp,t.regrowDay||0]),
       boars:G.boars.map(b=>[b.kind,r2(b.x),r2(b.y),b.hp]),
       enemies:G.enemies.map(e=>[e.type,r2(e.x),r2(e.y),r2(e.hp),e.max,e.spd,e.dmg,e.r,e.meat,e.inside?1:0]),
-      drops:G.drops.map(x=>[r2(x.x),r2(x.y),x.kind]),fenceLvl:G.fenceLvl||1,rain:!!G.rain,blood:!!G.blood,eclipse:!!G.eclipse,merchant:G.merchant||null,bonusHp:G.bonusHp||0,chest:[G.chest.w.n,G.chest.m.n],endless:!!G.endless,finalNight:!!G.finalNight,finalPending:!!G.finalPending,altarUses:G.altarUses||0,pads:Object.fromEntries(PADS.filter(p=>p.need).map(p=>[p.id,p.need]))},
+      drops:G.drops.map(x=>[r2(x.x),r2(x.y),x.kind]),fenceLvl:G.fenceLvl||1,mq:G.mq||null,rain:!!G.rain,blood:!!G.blood,eclipse:!!G.eclipse,merchant:G.merchant||null,bonusHp:G.bonusHp||0,chest:[G.chest.w.n,G.chest.m.n],endless:!!G.endless,finalNight:!!G.finalNight,finalPending:!!G.finalPending,altarUses:G.altarUses||0,pads:Object.fromEntries(PADS.filter(p=>p.need).map(p=>[p.id,p.need]))},
     P:{x:r2(P.x),y:r2(P.y),hp:P.hp,stack:P.stack.join('')},X:{plv:G.plv,xp:G.xp,pendLv:G.pendLv,sk:G.sk,animals:G.stats.animals,ch:G.ch||'bernardo'}};
   store.set(RUN_KEY,d);saveMeta()}catch(e){}}
 const clearRun=()=>{try{localStorage.removeItem(RUN_KEY)}catch(e){}};
@@ -1399,10 +1437,10 @@ function loadRun(){const d=store.get(RUN_KEY,null);if(!d||d.v!==1)return false;c
   mapIdx=mi;MAP=d.daily?chalMap(mi,d.daily.mods):d.nm?nmMap(mi):MAPS[mi];newGame();G.daily=d.daily||null;const S=d.G;
   Object.assign(G,{day:S.day,phase:S.phase,phaseT:S.phaseT,phaseLen:S.phaseLen,spawnLeft:S.spawnLeft,spawnT:S.spawnT,spawnEvery:S.spawnEvery,bossPending:S.bossPending,kills:S.kills,fenceBuilt:S.fenceBuilt,up:S.up});
   G.fenceLvl=S.fenceLvl||1;G.rain=!!S.rain;G.blood=!!S.blood;G.eclipse=!!S.eclipse;G.merchant=S.merchant||null;G.bonusHp=S.bonusHp||0;G.endless=!!S.endless;G.finalNight=!!S.finalNight;G.finalPending=!!S.finalPending;G.altarUses=S.altarUses||0;if(S.chest){G.chest.w.n=S.chest[0]||0;G.chest.m.n=S.chest[1]||0}else{G.chest.w.n=0;G.chest.m.n=0}
-  Object.assign(G.fire,S.fire);S.fence.forEach((f,i)=>{G.fence[i].hp=f[0];G.fence[i].max=f[1]});S.towers.forEach((l,i)=>G.towers[i].lvl=l);
+  Object.assign(G.fire,S.fire);S.fence.forEach((f,i)=>{G.fence[i].hp=f[0];G.fence[i].max=f[1]});S.towers.forEach((l,i)=>G.towers[i].lvl=l);if(S.towerHp)S.towerHp.forEach((h,i)=>{if(h>=0){G.towers[i].hp=h;G.towers[i].lvlHp=G.towers[i].lvl}});G.mq=S.mq||null;
   G.huts=[];G.villagers=[];G.piles=[];
-  for(const[kind,x,y,n]of S.huts){const h={kind,x,y,pile:{x:x+(kind==='lumber'?52:-52),y:y+8,n,kind:kind==='lumber'?'w':'m'}};G.huts.push(h);if(kind!=='collector')G.piles.push(h.pile)}
-  for(const k of S.vill){const h=G.huts.find(h=>h.kind===k);if(h)addVillager(k,h)}
+  for(const[kind,x,y,n]of S.huts){const h={kind,x,y,pile:{x:x+(kind==='lumber'?52:-52),y:y+8,n,kind:kind==='lumber'?'w':'m'}};G.huts.push(h);if(kind!=='collector'&&kind!=='warrior')G.piles.push(h.pile)}
+  for(const k of S.vill){if(k==='builder'){addBuilder();continue}const h=G.huts.find(h=>h.kind===k);if(h)addVillager(k,h)}
   G.trap.lvl=S.trap.lvl;G.trap.t=S.trap.t;G.trap.pile.n=S.trap.n;if(G.trap.lvl)G.piles.push(G.trap.pile);
   G.trees=S.trees.map(([x,y,s,a,hp,rd])=>({x,y,s,alive:!!a,hp,max:8,regrowDay:rd,shake:0,claimed:null}));
   G.boars=[];for(const[k,x,y,hp]of S.boars){spawnBoar(k);const b=G.boars[G.boars.length-1];b.x=x;b.y=y;b.hp=hp}
@@ -1443,9 +1481,13 @@ $('bEndless').onclick=()=>{G.endless=true;G.finalNight=false;G.finalPending=fals
 /* ---------- retenção ---------- */
 const QP=[{k:'kill',n:'Derrote {g} monstros',g:[50,400]},{k:'animal',n:'Cace {g} animais',g:[8,50]},{k:'cervo',n:'Cace {g} cervos',g:[3,15]},{k:'tree',n:'Derrube {g} árvores',g:[20,120]},{k:'night',n:'Sobreviva a {g} noites',g:[4,25]},{k:'nodmg',n:'Passe {g} noite(s) sem levar dano',g:[1,5]},{k:'build',n:'Faça {g} construções',g:[8,50]},{k:'boss',n:'Derrote {g} chefe(s)',g:[1,4]},{k:'level',n:'Chegue ao nível {g} numa partida',g:[8,14],max:1},{k:'win',n:'Vença {g} fase',g:[1,1],w:1}];
 const QREW={d:{b:40,x:120},w:{b:200,x:500}};
+function mqNew(night){const d=G.day;const L=night?[{k:'kill',n:'Derrote {g} monstros',g:8+d*2}].concat(d%5===0?[{k:'boss',n:'Derrote o chefe da noite',g:1}]:[]).concat(G.towers.some(t=>t.lvl)?[{k:'kill',n:'Derrote {g} monstros',g:12+d*2}]:[])
+  :[{k:'tree',n:'Derrube {g} árvores',g:6+d},{k:'animal',n:'Cace {g} animais',g:2+Math.floor(d/3)},{k:'build',n:'Faça {g} construções',g:Math.min(3,1+Math.floor(d/4))},{k:'chest',n:'Guarde {g} itens no baú',g:8+d}];
+  const q=L[Math.floor(Math.random()*L.length)];return{k:q.k,n:q.n.replace('{g}',q.g),g:q.g,p:0,done:0}}
+function mqReward(){const d=G.day;addDrop(P.x+20,P.y+10,'w',5+d);addDrop(P.x-20,P.y+10,'m',3+Math.ceil(d/2));gainXP(10+d*2);try{SFX.levelup()}catch(e){}banner('Mini missão concluída!','Recompensa no chão e XP');burst(P.x,P.y-30,'#ffe08a',20,200,5,80)}
 function qGen(kind){const id=kind==='d'?dayKey():weekKey();const cur=META.q[kind];if(cur&&cur.id===id)return cur;const R=srng(hashStr(id+kind));const pool=QP.filter(q=>kind==='w'||!q.w);const list=[];let guard=0;while(list.length<3&&guard++<99){const q=pool[Math.floor(R()*pool.length)];if(!list.some(x=>x.k===q.k))list.push({k:q.k,g:q.g[kind==='d'?0:1],p:0,c:0})}META.q[kind]={id,list};return META.q[kind]}
 const qText=x=>QP.find(q=>q.k===x.k).n.replace('{g}',x.g);
-function qAdd(k,n){n=n||1;for(const kind of['d','w']){const Q=qGen(kind);for(const x of Q.list){if(x.k!==k||x.p>=x.g)continue;x.p=QP.find(q=>q.k===k).max?Math.max(x.p,n):x.p+n;if(x.p>=x.g){x.p=x.g;try{toast('Missão concluída: '+qText(x))}catch(e){}saveMeta()}}}}
+function qAdd(k,n){n=n||1;if(G&&G.mq&&G.mq.k===k&&!G.mq.done){G.mq.p=Math.min(G.mq.g,G.mq.p+n);if(G.mq.p>=G.mq.g){G.mq.done=1;mqReward()}}for(const kind of['d','w']){const Q=qGen(kind);for(const x of Q.list){if(x.k!==k||x.p>=x.g)continue;x.p=QP.find(q=>q.k===k).max?Math.max(x.p,n):x.p+n;if(x.p>=x.g){x.p=x.g;try{toast('Missão concluída: '+qText(x))}catch(e){}saveMeta()}}}}
 const petLv=id=>Math.min(5,1+Math.floor((META.pets.xp[id]||0)/150));
 const PASS_LV=30,PASS_XP=300;const passLv=()=>Math.min(PASS_LV,Math.floor(META.pass.xp/PASS_XP));
 function passAdd(x){const b=passLv();META.pass.xp+=Math.round(x);const a=passLv();if(a>b){try{toast('Passe: nível '+a+'!')}catch(e){}}if(a>=10)achieve('passe10')}
